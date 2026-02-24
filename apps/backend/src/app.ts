@@ -1,0 +1,44 @@
+// Ovo — Smart Task Manager
+// SPDX-License-Identifier: GPL-3.0
+
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import { authRouter } from "./routes/auth";
+import { taskRouter } from "./routes/tasks";
+import { userRouter } from "./routes/user";
+import { errorHandler } from "./middleware/errorHandler";
+
+const app = express();
+
+// ─── Middleware ───────────────────────────────────────
+app.use(helmet());
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || "*",
+    credentials: true,
+  })
+);
+app.use(morgan("dev"));
+app.use(express.json({ limit: "10kb" }));
+
+// ─── Health Check ────────────────────────────────────
+app.get("/api/health", (_req, res) => {
+  res.json({ success: true, message: "Ovo API is running", timestamp: new Date().toISOString() });
+});
+
+// ─── Routes ──────────────────────────────────────────
+app.use("/api/auth", authRouter);
+app.use("/api/tasks", taskRouter);
+app.use("/api/user", userRouter);
+
+// ─── 404 Handler ─────────────────────────────────────
+app.use((_req, res) => {
+  res.status(404).json({ success: false, message: "Route not found" });
+});
+
+// ─── Error Handler ───────────────────────────────────
+app.use(errorHandler);
+
+export default app;
