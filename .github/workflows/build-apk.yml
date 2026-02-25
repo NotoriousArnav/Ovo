@@ -84,3 +84,20 @@ jobs:
           path: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
           if-no-files-found: error
+
+      # ── GitHub Release ──
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./app.json').expo.version")" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}-${{ github.run_number }}
+          name: Ovo v${{ steps.version.outputs.version }} (build ${{ github.run_number }})
+          body: |
+            **Automated build from commit [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})**
+
+            Install the APK on your Android device (arm64).
+          files: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          generate_release_notes: true
