@@ -39,7 +39,7 @@ jobs:
             binary: ovo-mcp
             ext: ""
             cross: false
-          - os: macos-13
+          - os: macos-15-intel
             label: darwin-x64
             binary: ovo-mcp
             ext: ""
