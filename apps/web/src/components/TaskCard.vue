@@ -64,7 +64,7 @@ async function toggleComplete() {
       </button>
     </div>
 
-    <div class="task-card-body" @click="router.push(`/tasks/${task.id}/edit`)">
+    <div class="task-card-body" @click="router.push(`/dashboard/tasks/${task.id}/edit`)">
       <div class="task-title">{{ task.title }}</div>
       <div v-if="task.description" class="task-desc text-sm text-muted">
         {{ task.description.length > 100 ? task.description.slice(0, 100) + "..." : task.description }}
@@ -83,7 +83,7 @@ async function toggleComplete() {
     </div>
 
     <div class="task-card-actions">
-      <button class="btn btn-icon btn-text btn-sm" @click="router.push(`/tasks/${task.id}/edit`)" aria-label="Edit task">
+      <button class="btn btn-icon btn-text btn-sm" @click="router.push(`/dashboard/tasks/${task.id}/edit`)" aria-label="Edit task">
         &#9998;
       </button>
       <button class="btn btn-icon btn-text btn-sm" @click="handleDelete" :disabled="deleting" aria-label="Delete task">

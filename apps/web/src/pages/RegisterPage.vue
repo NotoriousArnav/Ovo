@@ -24,7 +24,7 @@ async function handleSubmit() {
       password: password.value,
     });
     await auth.register(data);
-    router.push("/");
+    router.push("/dashboard");
   } catch (err: unknown) {
     if ((err as { errors?: unknown[] }).errors) {
       const zodErr = err as ZodError;

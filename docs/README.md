@@ -1,6 +1,6 @@
 # Ovo Documentation
 
-> **Ovo** is a full-stack smart task manager built with Expo React Native and Express.js, featuring Material You dynamic theming.
+> **Ovo** is a simple, self-hosted task management application with a Vue 3 web app, native Android client, and Express.js REST API.
 
 ## Quick Links
 
@@ -26,12 +26,15 @@
 
 6. **[Shared Package](./shared-package.md)** — What `@ovo/shared` contains, how pnpm workspace linking works, the Vercel serverless fix, and the current state of shared code.
 
+7. **[Obtainium](./obtainium.md)** — How to install and auto-update the Android APK using Obtainium with GitHub Releases.
+
 ## Project Structure
 
 ```
 Ovo/
 ├── apps/
 │   ├── backend/         # Express.js API (Prisma + NeonDB + JWT)
+│   ├── web/             # Vue 3 SPA (Pinia, MD3, Vite)
 │   └── mobile/          # Expo SDK 54 React Native app
 ├── packages/
 │   └── shared/          # Shared TypeScript types & Zod schemas

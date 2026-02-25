@@ -6,6 +6,11 @@ import { getAccessToken } from "@/services/api";
 
 const routes: RouteRecordRaw[] = [
   {
+    path: "/",
+    name: "landing",
+    component: () => import("@/pages/LandingPage.vue"),
+  },
+  {
     path: "/docs",
     name: "docs",
     component: () => import("@/pages/DocsPage.vue"),
@@ -23,7 +28,7 @@ const routes: RouteRecordRaw[] = [
     meta: { guest: true },
   },
   {
-    path: "/",
+    path: "/dashboard",
     component: () => import("@/layouts/AppLayout.vue"),
     meta: { auth: true },
     children: [

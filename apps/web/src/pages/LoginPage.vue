@@ -19,7 +19,7 @@ async function handleSubmit() {
   try {
     const data = loginSchema.parse({ email: email.value, password: password.value });
     await auth.login(data);
-    const redirect = (router.currentRoute.value.query.redirect as string) || "/";
+    const redirect = (router.currentRoute.value.query.redirect as string) || "/dashboard";
     router.push(redirect);
   } catch (err: unknown) {
     if ((err as { errors?: unknown[] }).errors) {

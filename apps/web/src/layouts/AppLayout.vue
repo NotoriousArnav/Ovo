@@ -22,12 +22,12 @@ async function handleLogout() {
     <!-- ─── Top App Bar ───────────────────────────────── -->
     <header class="app-bar">
       <div class="app-bar-inner">
-        <RouterLink to="/" class="app-title">Ovo</RouterLink>
+        <RouterLink to="/dashboard" class="app-title">Ovo</RouterLink>
 
         <nav class="nav-links">
-          <RouterLink to="/" class="nav-link" active-class="nav-link--active">Dashboard</RouterLink>
-          <RouterLink to="/tasks/new" class="nav-link" active-class="nav-link--active">New Task</RouterLink>
-          <RouterLink to="/profile" class="nav-link" active-class="nav-link--active">Profile</RouterLink>
+          <RouterLink to="/dashboard" class="nav-link" active-class="nav-link--active">Dashboard</RouterLink>
+          <RouterLink to="/dashboard/tasks/new" class="nav-link" active-class="nav-link--active">New Task</RouterLink>
+          <RouterLink to="/dashboard/profile" class="nav-link" active-class="nav-link--active">Profile</RouterLink>
           <RouterLink to="/docs" class="nav-link" active-class="nav-link--active">Docs</RouterLink>
         </nav>
 
@@ -44,9 +44,9 @@ async function handleLogout() {
 
       <!-- Mobile menu -->
       <nav class="mobile-nav" v-if="menuOpen" @click="menuOpen = false">
-        <RouterLink to="/" class="mobile-link">Dashboard</RouterLink>
-        <RouterLink to="/tasks/new" class="mobile-link">New Task</RouterLink>
-        <RouterLink to="/profile" class="mobile-link">Profile</RouterLink>
+        <RouterLink to="/dashboard" class="mobile-link">Dashboard</RouterLink>
+        <RouterLink to="/dashboard/tasks/new" class="mobile-link">New Task</RouterLink>
+        <RouterLink to="/dashboard/profile" class="mobile-link">Profile</RouterLink>
         <RouterLink to="/docs" class="mobile-link">Docs</RouterLink>
         <button class="mobile-link logout" @click="handleLogout">Logout</button>
       </nav>

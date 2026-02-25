@@ -37,7 +37,7 @@ function goToPage(page: number) {
     <!-- ─── Header ─────────────────────────────────── -->
     <div class="dashboard-header">
       <h2>Tasks</h2>
-      <button class="btn btn-primary" @click="router.push('/tasks/new')">
+      <button class="btn btn-primary" @click="router.push('/dashboard/tasks/new')">
         + New Task
       </button>
     </div>
@@ -66,7 +66,7 @@ function goToPage(page: number) {
 
     <div v-else-if="taskStore.tasks.length === 0" class="empty-state">
       <p class="text-muted">No tasks found</p>
-      <button class="btn btn-primary btn-sm mt-4" @click="router.push('/tasks/new')">Create your first task</button>
+      <button class="btn btn-primary btn-sm mt-4" @click="router.push('/dashboard/tasks/new')">Create your first task</button>
     </div>
 
     <div v-else class="task-list">

@@ -1,186 +1,205 @@
-# Ovo — Smart Task Manager
+# Ovo
 
-A production-ready full-stack mobile task manager built with **Expo React Native** and **Express.js**, featuring **Material You** dynamic theming.
+**A simple, self-hosted task management application.**
+
+Ovo is a full-stack task manager you deploy on your own infrastructure. It ships with a **Vue 3 web app**, a **native Android client** (Expo React Native), and an **Express.js REST API** — all sharing types and validation through a common package. Your data stays on your server, under your control.
+
+## Highlights
+
+- **Self-hosted** — Deploy the backend anywhere that runs Node.js. Use your own PostgreSQL database.
+- **Cross-platform** — Vue 3 SPA for desktop/web, Android APK for mobile, both talking to the same API.
+- **Material Design 3** — Clean MD3 theming with automatic dark mode. On Android 12+, colors adapt to the device wallpaper.
+- **Open source** — GPL-3.0. Inspect, fork, and self-host freely.
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| Frontend | Expo SDK 54, React Native, TypeScript, expo-router |
-| UI | react-native-paper v5 (MD3), @pchmn/expo-material3-theme |
-| State | Zustand |
+|---|---|
+| Web | Vue 3, Pinia, TypeScript, Vite |
+| Mobile | Expo SDK 54, React Native, react-native-paper v5, Zustand |
 | Backend | Node.js, Express.js, TypeScript |
 | Database | PostgreSQL (NeonDB) via Prisma ORM |
-| Auth | JWT (access + refresh tokens), bcrypt |
-| Validation | Zod (shared between frontend & backend) |
+| Auth | JWT access + refresh tokens, bcrypt, token rotation |
+| Validation | Zod (shared between all clients and backend) |
 | Monorepo | pnpm workspaces + Turborepo |
-| CI/CD | GitHub Actions (lint + APK build) |
-| License | GPL-3.0 |
+| CI/CD | GitHub Actions — lint, typecheck, APK builds with per-arch releases |
 
 ## Architecture
 
 ```
 Ovo/
 ├── apps/
-│   ├── mobile/          # Expo React Native app
-│   └── backend/         # Express.js API server
+│   ├── backend/         # Express.js REST API (Prisma, JWT, Swagger)
+│   ├── web/             # Vue 3 SPA (Pinia, MD3, Vite)
+│   └── mobile/          # Expo React Native app (Paper v5, Zustand)
 ├── packages/
-│   └── shared/          # Shared types & Zod validation schemas
-├── .github/workflows/   # CI/CD pipelines
-├── turbo.json           # Turborepo config
-└── pnpm-workspace.yaml  # Workspace config
+│   └── shared/          # Shared TypeScript types & Zod schemas
+├── docs/                # Project documentation
+├── .github/workflows/   # CI + APK build pipelines
+├── turbo.json           # Turborepo task config
+└── pnpm-workspace.yaml  # Workspace definition
 ```
 
-**Key architecture decisions:**
+Types and validation schemas are defined once in `packages/shared` and consumed by all apps — no type drift, consistent validation everywhere.
 
-- **Monorepo with shared package**: Types and validation schemas are defined once in `packages/shared` and consumed by both frontend and backend. This eliminates type drift and ensures validation rules are consistent.
-- **Expo Router (file-based routing)**: Route groups `(auth)` and `(app)` provide clean separation of authenticated and unauthenticated flows with automatic redirects.
-- **Zustand over Context**: Provides surgical re-renders (components only update when their subscribed data changes), built-in async support, and minimal boilerplate.
-- **Prisma + NeonDB**: Type-safe database queries with auto-generated types. NeonDB provides serverless PostgreSQL that pairs well with Vercel's serverless functions.
-- **JWT with refresh token rotation**: Access tokens expire in 15 minutes. Refresh tokens are rotated on every use and stored securely via `expo-secure-store`.
-- **Material You dynamic theming**: On Android 12+, the app reads the device's wallpaper-derived color palette. Falls back to a seed color on older devices/iOS.
-- **Vercel serverless deployment**: The Express app is wrapped as a single serverless function, avoiding cold start multiplication.
-
-## Setup
+## Quick Start
 
 ### Prerequisites
 
 - Node.js >= 20
 - pnpm >= 9
-- A [NeonDB](https://neon.tech) database (free tier)
-- Android Studio / Expo dev client (for mobile development)
+- PostgreSQL database (e.g. [NeonDB](https://neon.tech) free tier, or any self-hosted Postgres)
 
-### 1. Clone & Install
+### 1. Clone and install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Ovo.git
+git clone https://github.com/NotoriousArnav/Ovo.git
 cd Ovo
 pnpm install
 ```
 
-### 2. Configure Environment
+### 2. Configure environment
 
 ```bash
 # Backend
 cp apps/backend/.env.example apps/backend/.env
-# Edit apps/backend/.env with your NeonDB URL and JWT secret
+# Set DATABASE_URL, JWT_ACCESS_SECRET, CORS_ORIGIN
+
+# Web
+cp apps/web/.env.example apps/web/.env
+# Set VITE_API_URL (e.g. http://localhost:3001/api)
 
 # Mobile
 cp apps/mobile/.env.example apps/mobile/.env
-# Edit apps/mobile/.env with your backend URL
+# Set EXPO_PUBLIC_API_URL
 ```
 
 Generate a JWT secret:
+
 ```bash
 openssl rand -hex 64
 ```
 
-### 3. Set Up Database
+### 3. Set up database
 
 ```bash
 pnpm --filter @ovo/backend db:generate   # Generate Prisma client
-pnpm --filter @ovo/backend db:push       # Push schema to NeonDB
+pnpm --filter @ovo/backend db:push       # Push schema to database
 ```
 
-### 4. Run Development Servers
+### 4. Run
 
 ```bash
-# Run both backend and mobile in parallel
+# All apps in parallel
 pnpm dev
 
 # Or individually
-pnpm dev:backend   # Express API on http://localhost:3001
+pnpm dev:backend   # Express API — http://localhost:3001
+pnpm dev:web       # Vue 3 SPA — http://localhost:5173
 pnpm dev:app       # Expo dev server
-```
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [Getting Started](docs/getting-started.md) | Prerequisites, installation, environment setup |
-| [Architecture](docs/architecture.md) | Directory structure, tech stack rationale, auth & request flow diagrams |
-| [API Reference](docs/api-reference.md) | All 12 endpoints with request/response schemas and curl examples |
-| [Mobile App](docs/mobile-app.md) | Screens, navigation, theming, stores, APK building |
-| [Deployment](docs/deployment.md) | Vercel config, CI/CD pipelines, APK signing |
-| [Shared Package](docs/shared-package.md) | Workspace linking, Vercel workaround, types & schemas |
-
-### Live API Docs
-
-- **Swagger UI**: [https://ovo-backend.vercel.app/api/docs](https://ovo-backend.vercel.app/api/docs)
-- **OpenAPI JSON**: [https://ovo-backend.vercel.app/api/docs.json](https://ovo-backend.vercel.app/api/docs.json)
-
-### Quick API Overview
-
-Base URL: `/api`
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/health` | No | Health check |
-| POST | `/auth/register` | No | Register new user |
-| POST | `/auth/login` | No | Login, returns JWT tokens |
-| POST | `/auth/refresh` | No | Refresh access token |
-| POST | `/auth/logout` | No | Invalidate refresh token |
-| GET | `/tasks` | Yes | List tasks (filtered, paginated, sorted) |
-| GET | `/tasks/stats` | Yes | Task completion statistics |
-| GET | `/tasks/:id` | Yes | Get single task |
-| POST | `/tasks` | Yes | Create task |
-| PUT | `/tasks/:id` | Yes | Update task (partial) |
-| DELETE | `/tasks/:id` | Yes | Delete task |
-| GET | `/user/profile` | Yes | Get user profile |
-
-All responses follow the format:
-```json
-{
-  "success": true,
-  "data": { ... },
-  "message": "optional message"
-}
 ```
 
 ## Deployment
 
-### Backend (Vercel)
+### Backend (Vercel or any Node.js host)
 
 ```bash
 cd apps/backend
 npx vercel
 ```
 
-Set environment variables in Vercel dashboard:
-- `DATABASE_URL` — NeonDB connection string
-- `JWT_ACCESS_SECRET` — your generated secret
-- `CORS_ORIGIN` — your app's domain (or `*` for development)
+Set these environment variables on your host:
 
-### Mobile (APK)
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_ACCESS_SECRET` | Secret for signing JWTs |
+| `CORS_ORIGIN` | Allowed origin(s) for CORS |
 
-APKs are automatically built by GitHub Actions on push to `main`. To build locally:
+### Web (Netlify or any static host)
+
+The web app is a static SPA. Build and deploy to any static hosting:
+
+```bash
+pnpm --filter @ovo/web build
+# Output: apps/web/dist/
+```
+
+A `netlify.toml` is included for one-click Netlify deploys.
+
+### Mobile (Android APK)
+
+APKs are automatically built per-architecture (`arm64-v8a`, `armeabi-v7a`, `x86_64`, `x86`, `universal`) by GitHub Actions on every push to `main` and published as GitHub Releases.
+
+To install via [Obtainium](https://github.com/ImranR98/Obtainium) for automatic updates, see the [Obtainium guide](docs/obtainium.md).
+
+To build locally:
 
 ```bash
 cd apps/mobile
 npx expo prebuild --platform android --clean
-cd android
-./gradlew assembleRelease
-# APK: android/app/build/outputs/apk/release/app-release.apk
+cd android && ./gradlew assembleRelease
 ```
 
-### CI/CD — GitHub Secrets for APK Signing
+## Documentation
 
-| Secret | Description |
-|--------|-------------|
-| `ANDROID_KEYSTORE_BASE64` | Base64-encoded keystore file |
-| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
-| `ANDROID_KEY_ALIAS` | Key alias |
-| `ANDROID_KEY_PASSWORD` | Key password |
+| Document | Description |
+|---|---|
+| [Getting Started](docs/getting-started.md) | Prerequisites, installation, environment setup |
+| [Architecture](docs/architecture.md) | Directory structure, tech decisions, auth flow |
+| [API Reference](docs/api-reference.md) | All REST endpoints with schemas and curl examples |
+| [Mobile App](docs/mobile-app.md) | Screens, navigation, theming, stores, APK building |
+| [Deployment](docs/deployment.md) | Vercel, Netlify, GitHub Actions, APK signing |
+| [Shared Package](docs/shared-package.md) | Workspace linking, types, Vercel workaround |
+| [Obtainium](docs/obtainium.md) | Install and auto-update the Android app via Obtainium |
 
-Generate a keystore:
-```bash
-keytool -genkeypair -v -storetype PKCS12 -keystore upload.keystore \
-  -alias ovo -keyalg RSA -keysize 2048 -validity 10000
+### Live API
 
-# Encode for GitHub Secrets:
-base64 -w 0 upload.keystore
-```
+- **Swagger UI**: [ovo-backend.vercel.app/api/docs](https://ovo-backend.vercel.app/api/docs)
+- **OpenAPI JSON**: [ovo-backend.vercel.app/api/docs.json](https://ovo-backend.vercel.app/api/docs.json)
+
+## Roadmap
+
+Planned features for upcoming releases:
+
+### MCP Server
+
+A [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes Ovo tasks to AI assistants and LLM-powered tools. This will allow AI agents to read, create, update, and manage tasks through a standardized protocol — enabling integration with any MCP-compatible client.
+
+### Universal Calendar Integration
+
+Sync tasks with external calendars — Google Calendar, Apple Calendar, CalDAV, and other providers. Due dates and task schedules will appear in your existing calendar workflow, with two-way sync support.
+
+### LangChain Integration
+
+Backend-side [LangChain](https://www.langchain.com/) integration for AI-assisted task management. This will power features like:
+
+- Natural language task creation ("remind me to review the PR tomorrow at 2pm")
+- Intelligent task prioritization suggestions
+- Task summarization and progress reports
+- Conversational queries over your task data
+
+LangChain is integrated in the backend rather than the client, so all AI capabilities are available to every client (web, mobile, MCP) without duplicating logic.
+
+## API Overview
+
+Base URL: `/api`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/health` | No | Health check |
+| POST | `/auth/register` | No | Register new user |
+| POST | `/auth/login` | No | Login, returns JWT pair |
+| POST | `/auth/refresh` | No | Refresh access token |
+| POST | `/auth/logout` | No | Invalidate refresh token |
+| GET | `/tasks` | Yes | List tasks (filter, paginate, sort) |
+| GET | `/tasks/stats` | Yes | Task completion statistics |
+| GET | `/tasks/:id` | Yes | Get single task |
+| POST | `/tasks` | Yes | Create task |
+| PUT | `/tasks/:id` | Yes | Update task |
+| DELETE | `/tasks/:id` | Yes | Delete task |
+| GET | `/user/profile` | Yes | Get user profile |
 
 ## License
 
-This project is licensed under the **GNU General Public License v3.0** — see [LICENSE](./LICENSE) for details.
+[GNU General Public License v3.0](./LICENSE)

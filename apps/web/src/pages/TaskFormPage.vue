@@ -63,7 +63,7 @@ async function handleSubmit() {
       createTaskSchema.parse(payload);
       await taskStore.addTask(payload);
     }
-    router.push("/");
+    router.push("/dashboard");
   } catch (err: unknown) {
     if ((err as { errors?: unknown[] }).errors) {
       const zodErr = err as ZodError;
