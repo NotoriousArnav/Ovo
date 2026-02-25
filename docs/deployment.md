@@ -50,6 +50,13 @@ Set these in **Vercel Dashboard > Project Settings > Environment Variables**:
 | `JWT_REFRESH_SECRET` | Random 64-char hex | Yes |
 | `NODE_ENV` | `production` | Yes |
 | `CORS_ORIGIN` | `*` (or restrict to your domain) | No |
+| `EH_CLIENT_ID` | Event Horizon OAuth client ID | No (only for EH SSO) |
+| `EH_CLIENT_SECRET` | Event Horizon OAuth client secret | No (only for EH SSO) |
+| `EH_URL` | Event Horizon instance URL (e.g. `https://events.neopanda.tech`) | No (only for EH SSO) |
+| `EH_ALLOWED_REDIRECTS` | Comma-separated allowlist of client OAuth redirect URIs | No (only for EH SSO) |
+| `BASE_URL` | Public backend URL (e.g. `https://ovo-backend.vercel.app`) | No (only for EH SSO) |
+
+`BASE_URL` exists because Vercel's auto-set `VERCEL_URL` resolves to unique preview deploy URLs (like `ovo-backend-abc123.vercel.app`), which break OAuth since Event Horizon only has the production callback URL registered. Set `BASE_URL` to your stable production URL.
 
 ### Deploy
 
@@ -67,6 +74,61 @@ Or connect the GitHub repository in the Vercel dashboard for auto-deploy on push
 Vercel's serverless bundler cannot resolve pnpm workspace symlinks (`workspace:*`). The backend originally imported from `@ovo/shared`, but this broke in production.
 
 **Fix**: The shared code was inlined into `apps/backend/src/shared/`. The backend's `package.json` does not list `@ovo/shared` as a dependency. See [Shared Package](./shared-package.md) for the full story.
+
+---
+
+## Web App on Netlify
+
+The Vue 3 SPA is deployed as a static site on Netlify.
+
+### How It Works
+
+A `netlify.toml` at the repo root configures the build:
+
+```toml
+[build]
+  base = "apps/web"
+  command = "cd ../.. && pnpm install && pnpm --filter @ovo/web build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+```
+
+Key details:
+
+- **Base directory**: `apps/web` — Netlify runs from here
+- **Build command**: Installs from monorepo root, then builds the web app
+- **Publish directory**: `dist` (relative to base) — the Vite build output
+- **SPA redirect**: All routes fall through to `index.html` for client-side routing
+
+### Environment Variables (Netlify Dashboard)
+
+Set these in **Netlify Dashboard > Site settings > Environment variables**:
+
+| Variable | Value | Required |
+|----------|-------|----------|
+| `VITE_API_URL` | `https://ovo-backend.vercel.app/api` | Yes |
+| `NODE_VERSION` | `20` | Recommended |
+
+### Deploy
+
+Connect the GitHub repository in the Netlify dashboard. Set the base directory to `apps/web`. Netlify auto-deploys on push to `main`.
+
+Or deploy manually:
+
+```bash
+pnpm --filter @ovo/web build
+# Upload apps/web/dist/ to any static host
+```
+
+### Web Environment Configuration
+
+| Variable | Development | Production |
+|----------|------------|------------|
+| `VITE_API_URL` | `http://localhost:3001/api` | `https://ovo-backend.vercel.app/api` |
 
 ---
 

@@ -39,6 +39,19 @@ Ovo/
 │   │       ├── app.ts           # Express app setup
 │   │       └── index.ts         # Local dev entry (dotenv + listen)
 │   │
+│   ├── web/                     # Vue 3 SPA
+│   │   ├── src/
+│   │   │   ├── pages/           # Route-level page components
+│   │   │   ├── components/      # Reusable UI components
+│   │   │   ├── stores/          # Pinia state stores
+│   │   │   ├── services/        # API service layer (fetch)
+│   │   │   ├── layouts/         # Layout wrappers
+│   │   │   ├── router/          # Vue Router config
+│   │   │   ├── App.vue          # Root component
+│   │   │   └── main.ts          # App entry point
+│   │   ├── public/              # Static assets
+│   │   └── index.html           # SPA shell
+│   │
 │   └── mobile/                  # Expo SDK 54 React Native app
 │       ├── app/                 # expo-router file-based routing
 │       │   ├── _layout.tsx      # Root layout (providers, theme)
@@ -76,6 +89,7 @@ Ovo/
 | Layer | Technology | Rationale |
 |-------|-----------|-----------|
 | **Mobile UI** | Expo SDK 54, React Native | Cross-platform with native performance; Expo simplifies build tooling |
+| **Web UI** | Vue 3, Pinia, TypeScript, Vite | Lightweight SPA framework; Pinia for state; Vite for fast dev/build |
 | **UI Library** | react-native-paper v5 (MD3) | Material Design 3 components with built-in theming support |
 | **Dynamic Theming** | `@pchmn/expo-material3-theme` | Extracts device wallpaper colors on Android 12+ for Material You |
 | **Navigation** | expo-router v6 | File-based routing with type safety; route groups for auth separation |
@@ -88,7 +102,7 @@ Ovo/
 | **Auth** | JWT + bcrypt | Stateless access tokens (15min) + rotating refresh tokens (7 days) |
 | **Validation** | Zod | Runtime validation with TypeScript type inference; shared between client and server |
 | **Monorepo** | pnpm workspaces + Turborepo | Fast installs via content-addressable store; task caching and parallel execution |
-| **Deployment** | Vercel (backend), GitHub Actions (APK) | Zero-config serverless for Express; automated APK builds with release artifacts |
+| **Deployment** | Vercel (backend), Netlify (web), GitHub Actions (APK) | Zero-config serverless for Express; static hosting for Vue SPA; automated APK builds with release artifacts |
 
 ## Request Lifecycle (Backend)
 
@@ -281,3 +295,28 @@ Actions:
 3. **Built-in async** — actions can be async without additional middleware
 4. **Minimal boilerplate** — a single `create()` call defines state and actions together
 5. **DevTools support** — compatible with Redux DevTools for debugging
+
+## State Management (Web)
+
+The Vue 3 web app uses two [Pinia](https://pinia.vuejs.org/) stores, mirroring the mobile app's structure:
+
+### Auth Store (`stores/auth.ts`)
+
+Manages authentication state, JWT tokens (stored in `localStorage`), and user session.
+
+- `login()` / `register()` — call the backend, store tokens, set user
+- `logout()` — invalidate refresh token, clear storage, reset state
+- `eventHorizonLogin()` — redirects to the backend's EH OAuth endpoint; the callback page reads tokens from URL params
+- `initialize()` — checks localStorage for an existing access token and validates via `/user/profile`
+
+### Tasks Store (`stores/tasks.ts`)
+
+Manages tasks, filtering, pagination, and statistics — same shape as the mobile TaskStore.
+
+## Event Horizon OAuth
+
+Ovo supports "Sign in with Event Horizon" — an OAuth2 Authorization Code flow with PKCE that uses BroCode's own [Event Horizon](https://events.neopanda.tech) instance as the identity provider. The backend owns the entire flow; clients just redirect to a single endpoint.
+
+Users who sign in via Event Horizon have their `authProvider` field set to `"eventhorizon"` and have no password (the `passwordHash` column is nullable).
+
+For the full flow diagram, architecture decisions, env vars, and client implementations, see [Event Horizon OAuth](./event-horizon-oauth.md).

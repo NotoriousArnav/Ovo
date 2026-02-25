@@ -18,7 +18,7 @@
 
 2. **[Architecture](./architecture.md)** — Monorepo layout, tech stack rationale, request lifecycle, authentication flow, state management.
 
-3. **[API Reference](./api-reference.md)** — All 13 REST endpoints with request/response schemas, validation rules, and copy-pasteable curl examples.
+3. **[API Reference](./api-reference.md)** — All 14 REST endpoints with request/response schemas, validation rules, and copy-pasteable curl examples.
 
 4. **[Mobile App](./mobile-app.md)** — Screens, navigation structure, Material You theming, Zustand stores, API service layer, building the APK.
 
@@ -27,6 +27,8 @@
 6. **[Shared Package](./shared-package.md)** — What `@ovo/shared` contains, how pnpm workspace linking works, the Vercel serverless fix, and the current state of shared code.
 
 7. **[Obtainium](./obtainium.md)** — How to install and auto-update the Android APK using Obtainium with GitHub Releases.
+
+8. **[Event Horizon OAuth](./event-horizon-oauth.md)** — Community SSO via OAuth2 + PKCE, environment setup, flow walkthrough, client implementations, and gotchas.
 
 ## Project Structure
 

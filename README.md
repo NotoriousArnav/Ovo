@@ -1,212 +1,74 @@
 # Ovo
 
-**A simple, self-hosted task management application.**
+A self-hosted task manager. Web, Android, one API. Your data, your server.
 
-Ovo is a full-stack task manager you deploy on your own infrastructure. It ships with a **Vue 3 web app**, a **native Android client** (Expo React Native), and an **Express.js REST API** — all sharing types and validation through a common package. Your data stays on your server, under your control. Built for the [BroCode Tech](https://brocode-tech.netlify.app/) community.
+## Why?
 
-## Highlights
+I was tired of spoon-feeding Google my data in an organized way, and I'm too lazy to shift to Proton. I also needed a reason to start mobile development and try React Native — plus I got a task from an interviewer to build a Smart Task Manager. On top of that, I wanted to build a BroCode FOSS ecosystem. So here we are with Ovo.
 
-- **Self-hosted** — Deploy the backend anywhere that runs Node.js. Use your own PostgreSQL database.
-- **Cross-platform** — Vue 3 SPA for desktop/web, Android APK for mobile, both talking to the same API.
-- **Material Design 3** — Clean MD3 theming with automatic dark mode. On Android 12+, colors adapt to the device wallpaper.
-- **Open source** — GPL-3.0. Inspect, fork, and self-host freely.
+## What You Get
 
-## Community
-
-Ovo is built for and by the [BroCode Tech](https://brocode-tech.netlify.app/) community — an open tech community for developers, builders, and learners.
-
-- **Community Website**: [brocode-tech.netlify.app](https://brocode-tech.netlify.app/)
-- **Events**: [events.neopanda.tech](https://events.neopanda.tech) — community events and meetups
-- **GitHub**: [github.com/NotoriousArnav/Ovo](https://github.com/NotoriousArnav/Ovo)
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Web | Vue 3, Pinia, TypeScript, Vite |
-| Mobile | Expo SDK 54, React Native, react-native-paper v5, Zustand |
-| Backend | Node.js, Express.js, TypeScript |
-| Database | PostgreSQL (NeonDB) via Prisma ORM |
-| Auth | JWT access + refresh tokens, bcrypt, token rotation |
-| Validation | Zod (shared between all clients and backend) |
-| Monorepo | pnpm workspaces + Turborepo |
-| CI/CD | GitHub Actions — lint, typecheck, APK builds with per-arch releases |
-
-## Architecture
-
-```
-Ovo/
-├── apps/
-│   ├── backend/         # Express.js REST API (Prisma, JWT, Swagger)
-│   ├── web/             # Vue 3 SPA (Pinia, MD3, Vite)
-│   └── mobile/          # Expo React Native app (Paper v5, Zustand)
-├── packages/
-│   └── shared/          # Shared TypeScript types & Zod schemas
-├── docs/                # Project documentation
-├── .github/workflows/   # CI + APK build pipelines
-├── turbo.json           # Turborepo task config
-└── pnpm-workspace.yaml  # Workspace definition
-```
-
-Types and validation schemas are defined once in `packages/shared` and consumed by all apps — no type drift, consistent validation everywhere.
+- **Self-hosted** — deploy the backend anywhere that runs Node.js, bring your own Postgres
+- **Cross-platform** — Vue 3 SPA for web, native Android APK, both talking to the same API
+- **[Event Horizon (Community SSO)](docs/event-horizon-oauth.md)** — sign in with your BroCode account via OAuth2, no third-party identity providers needed
+- **Material Design 3** — clean MD3 theming with automatic dark mode; on Android 12+, colors adapt to your wallpaper
+- **Open source** — GPL-3.0, inspect/fork/self-host freely
 
 ## Quick Start
-
-### Prerequisites
-
-- Node.js >= 20
-- pnpm >= 9
-- PostgreSQL database (e.g. [NeonDB](https://neon.tech) free tier, or any self-hosted Postgres)
-
-### 1. Clone and install
 
 ```bash
 git clone https://github.com/NotoriousArnav/Ovo.git
 cd Ovo
 pnpm install
-```
 
-### 2. Configure environment
-
-```bash
-# Backend
+# Configure env
 cp apps/backend/.env.example apps/backend/.env
-# Set DATABASE_URL, JWT_ACCESS_SECRET, CORS_ORIGIN
-
-# Web
 cp apps/web/.env.example apps/web/.env
-# Set VITE_API_URL (e.g. http://localhost:3001/api)
-
-# Mobile
 cp apps/mobile/.env.example apps/mobile/.env
-# Set EXPO_PUBLIC_API_URL
-```
+# Fill in DATABASE_URL, JWT secrets, VITE_API_URL, EXPO_PUBLIC_API_URL
 
-Generate a JWT secret:
+# Database
+pnpm --filter @ovo/backend db:generate
+pnpm --filter @ovo/backend db:push
 
-```bash
-openssl rand -hex 64
-```
-
-### 3. Set up database
-
-```bash
-pnpm --filter @ovo/backend db:generate   # Generate Prisma client
-pnpm --filter @ovo/backend db:push       # Push schema to database
-```
-
-### 4. Run
-
-```bash
-# All apps in parallel
+# Run everything
 pnpm dev
-
-# Or individually
-pnpm dev:backend   # Express API — http://localhost:3001
-pnpm dev:web       # Vue 3 SPA — http://localhost:5173
-pnpm dev:app       # Expo dev server
 ```
 
-## Deployment
+Backend runs on `http://localhost:3001`, web app on `http://localhost:5173`. For the full setup walkthrough, see [Getting Started](docs/getting-started.md).
 
-### Backend (Vercel or any Node.js host)
+## Community
 
-```bash
-cd apps/backend
-npx vercel
-```
+Ovo is built for the [BroCode Tech](https://brocode-tech.netlify.app/) community — an open tech community for developers, builders, and learners. We run workshops, hackathons, and build FOSS tools together.
 
-Set these environment variables on your host:
-
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `JWT_ACCESS_SECRET` | Secret for signing JWTs |
-| `CORS_ORIGIN` | Allowed origin(s) for CORS |
-
-### Web (Netlify or any static host)
-
-The web app is a static SPA. Build and deploy to any static hosting:
-
-```bash
-pnpm --filter @ovo/web build
-# Output: apps/web/dist/
-```
-
-A `netlify.toml` is included for one-click Netlify deploys.
-
-### Mobile (Android APK)
-
-APKs are automatically built per-architecture (`arm64-v8a`, `armeabi-v7a`, `x86_64`, `x86`, `universal`) by GitHub Actions on every push to `main` and published as GitHub Releases.
-
-To install via [Obtainium](https://github.com/ImranR98/Obtainium) for automatic updates, see the [Obtainium guide](docs/obtainium.md).
-
-To build locally:
-
-```bash
-cd apps/mobile
-npx expo prebuild --platform android --clean
-cd android && ./gradlew assembleRelease
-```
+- [Community Website](https://brocode-tech.netlify.app/)
+- [Events (Event Horizon)](https://events.neopanda.tech)
+- [GitHub](https://github.com/NotoriousArnav/Ovo)
 
 ## Documentation
 
-| Document | Description |
-|---|---|
-| [Getting Started](docs/getting-started.md) | Prerequisites, installation, environment setup |
-| [Architecture](docs/architecture.md) | Directory structure, tech decisions, auth flow |
-| [API Reference](docs/api-reference.md) | All REST endpoints with schemas and curl examples |
-| [Mobile App](docs/mobile-app.md) | Screens, navigation, theming, stores, APK building |
+| Document | What's in it |
+|----------|-------------|
+| [Getting Started](docs/getting-started.md) | Prerequisites, installation, env vars, dev servers |
+| [Architecture](docs/architecture.md) | Monorepo layout, tech stack, auth flow, state management |
+| [API Reference](docs/api-reference.md) | All 14 REST endpoints with schemas and curl examples |
+| [Event Horizon OAuth](docs/event-horizon-oauth.md) | Community SSO setup, OAuth2 + PKCE flow, env config |
+| [Mobile App](docs/mobile-app.md) | Screens, theming, stores, APK building |
 | [Deployment](docs/deployment.md) | Vercel, Netlify, GitHub Actions, APK signing |
 | [Shared Package](docs/shared-package.md) | Workspace linking, types, Vercel workaround |
-| [Obtainium](docs/obtainium.md) | Install and auto-update the Android app via Obtainium |
+| [Obtainium](docs/obtainium.md) | Auto-update Android app via Obtainium |
 
-### Live API
-
-- **Swagger UI**: [ovo-backend.vercel.app/api/docs](https://ovo-backend.vercel.app/api/docs)
-- **OpenAPI JSON**: [ovo-backend.vercel.app/api/docs.json](https://ovo-backend.vercel.app/api/docs.json)
+**Live API:** [Swagger UI](https://ovo-backend.vercel.app/api/docs) | [OpenAPI JSON](https://ovo-backend.vercel.app/api/docs.json)
 
 ## Roadmap
 
-Planned features for upcoming releases:
+**Shipped:**
+- Event Horizon (Community SSO) — OAuth2 + PKCE across web and mobile
 
-### MCP Server
-
-A [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes Ovo tasks to AI assistants and LLM-powered tools. This will allow AI agents to read, create, update, and manage tasks through a standardized protocol — enabling integration with any MCP-compatible client.
-
-### Universal Calendar Integration
-
-Sync tasks with external calendars — Google Calendar, Apple Calendar, CalDAV, and other providers. Due dates and task schedules will appear in your existing calendar workflow, with two-way sync support.
-
-### LangChain Integration
-
-Backend-side [LangChain](https://www.langchain.com/) integration for AI-assisted task management. This will power features like:
-
-- Natural language task creation ("remind me to review the PR tomorrow at 2pm")
-- Intelligent task prioritization suggestions
-- Task summarization and progress reports
-- Conversational queries over your task data
-
-LangChain is integrated in the backend rather than the client, so all AI capabilities are available to every client (web, mobile, MCP) without duplicating logic.
-
-## API Overview
-
-Base URL: `/api`
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| GET | `/health` | No | Health check |
-| POST | `/auth/register` | No | Register new user |
-| POST | `/auth/login` | No | Login, returns JWT pair |
-| POST | `/auth/refresh` | No | Refresh access token |
-| POST | `/auth/logout` | No | Invalidate refresh token |
-| GET | `/tasks` | Yes | List tasks (filter, paginate, sort) |
-| GET | `/tasks/stats` | Yes | Task completion statistics |
-| GET | `/tasks/:id` | Yes | Get single task |
-| POST | `/tasks` | Yes | Create task |
-| PUT | `/tasks/:id` | Yes | Update task |
-| DELETE | `/tasks/:id` | Yes | Delete task |
-| GET | `/user/profile` | Yes | Get user profile |
+**Planned:**
+- **MCP Server** — expose tasks to AI assistants via [Model Context Protocol](https://modelcontextprotocol.io/)
+- **Calendar Integration** — sync tasks with Google Calendar, Apple Calendar, CalDAV
+- **LangChain Integration** — natural language task creation, smart prioritization, conversational queries over your tasks
 
 ## License
 

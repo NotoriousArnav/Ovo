@@ -18,7 +18,8 @@ packages/shared/
 
 | Type | Description |
 |------|-------------|
-| `User` | User object (`id`, `name`, `email`, `createdAt`, `updatedAt`) |
+| `User` | User object (`id`, `name`, `email`, `authProvider`, `createdAt`, `updatedAt`) |
+| `AuthProvider` | `"local" \| "eventhorizon"` — how the user signed up |
 | `Task` | Task object with all fields |
 | `TaskStatus` | `"pending" \| "in_progress" \| "completed"` |
 | `TaskPriority` | `"low" \| "medium" \| "high"` |
@@ -41,8 +42,9 @@ packages/shared/
 | `createTaskSchema` | Backend, Mobile | Validates task creation input |
 | `updateTaskSchema` | Backend, Mobile | Validates task update input |
 | `taskFiltersSchema` | Backend | Validates and coerces query parameters for task listing |
+| `ehLoginRedirectSchema` | Backend | Validates the `redirect_uri` query param for Event Horizon OAuth login |
 
-Each schema also exports an inferred TypeScript type (e.g., `RegisterInput`, `CreateTaskInput`).
+Each schema also exports an inferred TypeScript type (e.g., `RegisterInput`, `CreateTaskInput`, `EHLoginRedirectInput`).
 
 ### Package Configuration
 
@@ -85,6 +87,8 @@ The mobile app depends on `@ovo/shared` in its `package.json`:
   }
 }
 ```
+
+The web app uses the same workspace link — `@ovo/shared` is listed as a dependency in `apps/web/package.json` too.
 
 When `pnpm install` runs, it creates a symlink from `apps/mobile/node_modules/@ovo/shared` to `packages/shared/`. This means:
 
@@ -129,6 +133,7 @@ The `@ovo/shared` dependency was **removed** from `apps/backend/package.json`.
 
 | Consumer | How it imports shared code |
 |----------|--------------------------|
+| **Web app** (`apps/web/`) | `import { ... } from "@ovo/shared"` — via pnpm workspace symlink |
 | **Mobile app** (`apps/mobile/`) | `import { ... } from "@ovo/shared"` — via pnpm workspace symlink |
 | **Backend** (`apps/backend/`) | `import { ... } from "../shared"` — via inlined copy at `src/shared/` |
 

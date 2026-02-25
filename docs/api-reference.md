@@ -273,6 +273,63 @@ curl -X POST https://ovo-backend.vercel.app/api/auth/logout \
 
 ---
 
+### `GET /api/auth/eventhorizon/login`
+
+Initiates the Event Horizon OAuth2 + PKCE login flow. This is a **browser redirect endpoint** — it returns a 302, not JSON. Clients should navigate to this URL (not fetch it).
+
+**Query Parameters**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `redirect_uri` | string | Yes | Where to send the user after authentication. Must be in the `EH_ALLOWED_REDIRECTS` allowlist. |
+
+**Response** `302 Found`
+
+Redirects the browser to the Event Horizon authorization page. After the user authenticates, Event Horizon redirects back to the callback endpoint below.
+
+**Example URL**
+
+```
+https://ovo-backend.vercel.app/api/auth/eventhorizon/login?redirect_uri=https://ovo-tm.netlify.app/auth/eventhorizon/callback
+```
+
+**Error Responses**
+
+| Status | Condition | Body |
+|--------|-----------|------|
+| 400 | Missing or invalid `redirect_uri` | `{ "success": false, "message": "Validation failed", "errors": { ... } }` |
+| 403 | `redirect_uri` not in allowlist | `{ "success": false, "message": "Redirect URI not allowed" }` |
+| 500 | EH env vars not configured | `{ "success": false, "message": "Event Horizon OAuth is not configured" }` |
+
+---
+
+### `GET /api/auth/eventhorizon/callback`
+
+OAuth2 callback endpoint. **Clients don't call this directly** — Event Horizon redirects here after the user authenticates. The backend exchanges the authorization code for tokens, fetches the user profile from EH, creates/links the Ovo user, and redirects back to the client with Ovo JWT tokens.
+
+**Query Parameters** (set by Event Horizon)
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `code` | string | Authorization code from Event Horizon |
+| `state` | string | Signed JWT state parameter (contains redirect URI, nonce, PKCE code_verifier) |
+
+**Response** `302 Found`
+
+Redirects to `<redirect_uri>?access_token=<jwt>&refresh_token=<token>`. The client reads the tokens from the URL query parameters.
+
+**Error Responses**
+
+| Status | Condition | Body |
+|--------|-----------|------|
+| 400 | Missing `code` or `state` | `{ "success": false, "message": "Missing code or state" }` |
+| 401 | Invalid or expired state JWT | `{ "success": false, "message": "Invalid state" }` |
+| 502 | Event Horizon token exchange failed | `{ "success": false, "message": "Failed to exchange code" }` |
+
+For the full OAuth flow diagram and architecture decisions, see [Event Horizon OAuth](./event-horizon-oauth.md).
+
+---
+
 ## Tasks
 
 All task endpoints require authentication (`Authorization: Bearer <token>`).
@@ -622,11 +679,14 @@ Get the authenticated user's profile.
     "id": "cm5abc123def456",
     "name": "Arnav Sharma",
     "email": "arnav@example.com",
+    "authProvider": "local",
     "createdAt": "2025-01-15T12:00:00.000Z",
     "updatedAt": "2025-01-15T12:00:00.000Z"
   }
 }
 ```
+
+`authProvider` is `"local"` for email/password users or `"eventhorizon"` for users who signed in via Event Horizon OAuth.
 
 **Error Responses**
 
@@ -699,6 +759,8 @@ curl -s -X POST https://ovo-backend.vercel.app/api/auth/logout \
 | `POST` | `/api/auth/login` | No | Login |
 | `POST` | `/api/auth/refresh` | No | Refresh tokens |
 | `POST` | `/api/auth/logout` | No | Logout (invalidate refresh token) |
+| `GET` | `/api/auth/eventhorizon/login` | No | Start Event Horizon OAuth flow (302 redirect) |
+| `GET` | `/api/auth/eventhorizon/callback` | No | EH OAuth callback (302 redirect with tokens) |
 | `GET` | `/api/tasks` | Yes | List tasks (filtered, paginated, sorted) |
 | `GET` | `/api/tasks/stats` | Yes | Task statistics |
 | `GET` | `/api/tasks/:id` | Yes | Get single task |

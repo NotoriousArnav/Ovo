@@ -19,7 +19,7 @@ cd Ovo
 pnpm install
 ```
 
-pnpm will install dependencies for all workspaces (`apps/backend`, `apps/mobile`, `packages/shared`) and hoist them according to `.npmrc`:
+pnpm will install dependencies for all workspaces (`apps/backend`, `apps/web`, `apps/mobile`, `packages/shared`) and hoist them according to `.npmrc`:
 
 ```ini
 node-linker=hoisted
@@ -44,12 +44,29 @@ Fill in the following:
 | `PORT` | No | Server port (default: `3001`) | `3001` |
 | `NODE_ENV` | No | Environment (default: `development`) | `development` |
 | `CORS_ORIGIN` | No | Allowed CORS origin (default: `*`) | `*` |
+| `EH_CLIENT_ID` | No | Event Horizon OAuth client ID (for Community SSO) | `your-client-id` |
+| `EH_CLIENT_SECRET` | No | Event Horizon OAuth client secret | `your-client-secret` |
+| `EH_URL` | No | Event Horizon instance URL | `https://events.neopanda.tech` |
+| `EH_ALLOWED_REDIRECTS` | No | Comma-separated allowlist of client OAuth redirect URIs | `http://localhost:5173/auth/eventhorizon/callback,ovo://auth/callback` |
+| `BASE_URL` | No | Public base URL of the backend (used for OAuth callback) | `https://ovo-backend.vercel.app` |
+
+The EH variables are only needed if you want "Sign in with Event Horizon" — see [Event Horizon OAuth](./event-horizon-oauth.md) for the full setup.
 
 Generate JWT secrets:
 
 ```bash
 openssl rand -hex 64
 ```
+
+### Web (`apps/web/.env`)
+
+```bash
+cp apps/web/.env.example apps/web/.env
+```
+
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `VITE_API_URL` | Yes | Backend API base URL | `http://localhost:3001/api` (dev) or `https://ovo-backend.vercel.app/api` (prod) |
 
 ### Mobile (`apps/mobile/.env`)
 
@@ -75,7 +92,7 @@ pnpm --filter @ovo/backend db:push
 
 The Prisma schema is at `apps/backend/prisma/schema.prisma`. It defines three models:
 
-- **User** — `id`, `name`, `email`, `passwordHash`, timestamps
+- **User** — `id`, `name`, `email`, `passwordHash`, `authProvider`, timestamps
 - **Task** — `id`, `title`, `description`, `status`, `priority`, `dueDate`, `userId`, timestamps
 - **RefreshToken** — `id`, `token`, `userId`, `expiresAt`, `createdAt`
 
@@ -97,13 +114,16 @@ pnpm --filter @ovo/backend db:migrate
 pnpm dev
 ```
 
-This runs `turbo dev`, which starts the backend and mobile dev servers in parallel.
+This runs `turbo dev`, which starts the backend, web, and mobile dev servers in parallel.
 
 ### Individually
 
 ```bash
 # Backend only — Express API on http://localhost:3001
 pnpm dev:backend
+
+# Web only — Vue 3 SPA on http://localhost:5173
+pnpm dev:web
 
 # Mobile only — Expo dev server
 pnpm dev:app
@@ -133,8 +153,10 @@ Expected response:
 |--------|---------|-------------|
 | `pnpm dev` | `turbo dev` | Run all dev servers |
 | `pnpm dev:app` | `turbo dev --filter=@ovo/mobile` | Run mobile dev server only |
+| `pnpm dev:web` | `turbo dev --filter=@ovo/web` | Run web dev server only |
 | `pnpm dev:backend` | `turbo dev --filter=@ovo/backend` | Run backend dev server only |
 | `pnpm build` | `turbo build` | Build all packages |
+| `pnpm build:web` | `turbo build --filter=@ovo/web` | Build web app only (output: `apps/web/dist/`) |
 | `pnpm typecheck` | `turbo typecheck` | Type-check all packages |
 | `pnpm lint` | `turbo lint` | Lint all packages |
 | `pnpm test` | `turbo test` | Run all tests |

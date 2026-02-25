@@ -6,7 +6,7 @@ The Ovo mobile app is built with **Expo SDK 54** and **React Native**, using **r
 
 | Screen | Route | Auth | Description |
 |--------|-------|:----:|-------------|
-| Login | `/(auth)/login` | No | Email + password sign-in with client-side Zod validation |
+| Login | `/(auth)/login` | No | Email + password sign-in with client-side Zod validation. Also has a "Sign in with Event Horizon" button for Community SSO. |
 | Register | `/(auth)/register` | No | Name + email + password registration with password requirements hint |
 | Home | `/(app)/home` | Yes | Dashboard with progress card, task list, status filters, search, infinite scroll |
 | Task | `/(app)/task` | Yes | Dual-purpose create/edit form (edit mode when `?id=` param is present) |
@@ -100,6 +100,7 @@ The app automatically follows the device's system theme via `useColorScheme()`. 
 | `login(input)` | Calls `POST /auth/login`, stores both tokens in secure store, sets user |
 | `register(input)` | Calls `POST /auth/register`, stores both tokens in secure store, sets user |
 | `logout()` | Calls `POST /auth/logout` with the refresh token, clears secure store, resets state |
+| `eventHorizonLogin()` | Opens the EH OAuth flow via `expo-web-browser`, reads tokens from the `ovo://auth/callback` deep link, stores them |
 | `clearError()` | Clears the error message |
 
 ### TaskStore (`stores/taskStore.ts`)
@@ -183,6 +184,18 @@ This ensures that concurrent requests don't trigger multiple refresh calls.
 
 **`services/tasks.ts`** — `getTasks(filters)`, `getTask(id)`, `createTask(input)`, `updateTask(id, input)`, `deleteTask(id)`, `getStats()`
 
+### Event Horizon OAuth (Mobile)
+
+The mobile app uses [`expo-web-browser`](https://docs.expo.dev/versions/latest/sdk/webbrowser/) to open the OAuth flow in an in-app browser session:
+
+1. User taps "Sign in with Event Horizon" on the login screen
+2. `eventHorizonLogin()` calls `WebBrowser.openAuthSessionAsync()` with the backend's `/api/auth/eventhorizon/login?redirect_uri=ovo://auth/callback` URL
+3. The backend handles the full OAuth dance with Event Horizon
+4. After auth, the backend redirects to `ovo://auth/callback?access_token=...&refresh_token=...`
+5. The app intercepts the `ovo://` deep link, reads the tokens, stores them in `expo-secure-store`, and navigates to the dashboard
+
+The `ovo://` custom URL scheme is configured in `apps/mobile/app.json` (`"scheme": "ovo"`). See [Event Horizon OAuth](./event-horizon-oauth.md) for the full flow.
+
 ## Reusable Components
 
 | Component | File | Description |
@@ -231,7 +244,7 @@ cd android
 JAVA_HOME=/usr/lib/jvm/java-17-openjdk \
   ./gradlew assembleRelease --no-daemon \
     -PreactNativeArchitectures=arm64-v8a \
-    -Dorg.gradle.jvmargs="-Xmx1536m"
+    -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
 ```
 
 The APK will be at `android/app/build/outputs/apk/release/app-release.apk`.

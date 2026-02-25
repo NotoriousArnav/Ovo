@@ -69,9 +69,9 @@ const isLoggedIn = computed(() => !!getAccessToken());
         <p>Modern Material Design 3 theming with automatic dark mode and dynamic colors on Android.</p>
       </div>
       <div class="feature-card card card-outlined">
-        <div class="feature-icon">&#x1F513;</div>
-        <h3>Open Source</h3>
-        <p>Licensed under GPL-3.0. Inspect, modify, and contribute to the codebase freely.</p>
+        <div class="feature-icon">&#x1F511;</div>
+        <h3>Community SSO</h3>
+        <p>Sign in with your BroCode Event Horizon account. No third-party OAuth — the community runs its own identity provider.</p>
       </div>
     </section>
 
