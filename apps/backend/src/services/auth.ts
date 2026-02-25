@@ -205,10 +205,8 @@ export function initiateEventHorizonLogin(redirectUri: string): string {
 
   const state = signStateToken({ redirectUri, nonce, codeVerifier });
 
-  // Build the backend callback URL (same origin as the request)
-  const backendUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : `http://localhost:${process.env.PORT || 3001}`;
+  // Build the backend callback URL (BASE_URL must be the canonical production origin)
+  const backendUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
   const callbackUri = `${backendUrl}/api/auth/eventhorizon/callback`;
 
   const params = new URLSearchParams({
@@ -231,9 +229,7 @@ export async function handleEventHorizonCallback(code: string, state: string) {
   const { redirectUri, codeVerifier } = verifyStateToken(state);
 
   // Build the backend callback URL (must match what was sent in authorize)
-  const backendUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : `http://localhost:${process.env.PORT || 3001}`;
+  const backendUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
   const callbackUri = `${backendUrl}/api/auth/eventhorizon/callback`;
 
   // 1. Exchange code for EH access token
