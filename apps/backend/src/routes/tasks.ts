@@ -12,7 +12,7 @@ import {
 } from "../controllers/tasks";
 import { authenticate } from "../middleware/auth";
 import { validate } from "../middleware/validate";
-import { createTaskSchema, updateTaskSchema, taskFiltersSchema } from "@ovo/shared";
+import { createTaskSchema, updateTaskSchema, taskFiltersSchema } from "../shared";
 
 export const taskRouter = Router();
 

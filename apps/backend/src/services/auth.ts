@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import prisma from "../lib/prisma";
 import { AppError } from "../middleware/errorHandler";
-import type { RegisterInput, LoginInput } from "@ovo/shared";
+import type { RegisterInput, LoginInput } from "../shared";
 
 const SALT_ROUNDS = 12;
 const ACCESS_TOKEN_EXPIRY = "15m";

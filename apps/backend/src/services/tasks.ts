@@ -3,7 +3,7 @@
 
 import prisma from "../lib/prisma";
 import { AppError } from "../middleware/errorHandler";
-import type { CreateTaskInput, UpdateTaskInput, TaskFiltersInput } from "@ovo/shared";
+import type { CreateTaskInput, UpdateTaskInput, TaskFiltersInput } from "../shared";
 import { Prisma, TaskStatus, TaskPriority } from "@prisma/client";
 
 // Map shared types to Prisma enums

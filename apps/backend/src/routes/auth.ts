@@ -4,7 +4,7 @@
 import { Router } from "express";
 import { register, login, refresh, logout } from "../controllers/auth";
 import { validate } from "../middleware/validate";
-import { registerSchema, loginSchema, refreshTokenSchema } from "@ovo/shared";
+import { registerSchema, loginSchema, refreshTokenSchema } from "../shared";
 
 export const authRouter = Router();
 
