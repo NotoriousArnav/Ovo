@@ -4,9 +4,20 @@
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
 import { getAccessToken } from "@/services/api";
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 
 const isLoggedIn = computed(() => !!getAccessToken());
+
+// Keep Android Open — resist Google's sideloading lockdown
+onMounted(() => {
+  if (!document.getElementById("kao-banner-script")) {
+    const s = document.createElement("script");
+    s.id = "kao-banner-script";
+    s.src = "https://keepandroidopen.org/banner.js";
+    s.async = true;
+    document.head.appendChild(s);
+  }
+});
 </script>
 
 <template>
