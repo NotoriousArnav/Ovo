@@ -44,11 +44,11 @@ function signStateToken(payload: Record<string, unknown>): string {
   return jwt.sign(payload, secret, { expiresIn: EH_STATE_EXPIRY });
 }
 
-function verifyStateToken(token: string): { redirectUri: string; nonce: string } {
+function verifyStateToken(token: string): { redirectUri: string; nonce: string; codeVerifier: string } {
   const secret = process.env.JWT_ACCESS_SECRET;
   if (!secret) throw new AppError("JWT_ACCESS_SECRET not configured", 500);
   try {
-    return jwt.verify(token, secret) as { redirectUri: string; nonce: string };
+    return jwt.verify(token, secret) as { redirectUri: string; nonce: string; codeVerifier: string };
   } catch {
     throw new AppError("Invalid or expired OAuth state", 400);
   }
@@ -195,7 +195,15 @@ export function initiateEventHorizonLogin(redirectUri: string): string {
   }
 
   const nonce = crypto.randomBytes(16).toString("hex");
-  const state = signStateToken({ redirectUri, nonce });
+
+  // PKCE: generate code_verifier and code_challenge
+  const codeVerifier = crypto.randomBytes(32).toString("base64url");
+  const codeChallenge = crypto
+    .createHash("sha256")
+    .update(codeVerifier)
+    .digest("base64url");
+
+  const state = signStateToken({ redirectUri, nonce, codeVerifier });
 
   // Build the backend callback URL (same origin as the request)
   const backendUrl = process.env.VERCEL_URL
@@ -209,14 +217,18 @@ export function initiateEventHorizonLogin(redirectUri: string): string {
     redirect_uri: callbackUri,
     scope: "read",
     state,
+    code_challenge: codeChallenge,
+    code_challenge_method: "S256",
   });
 
-  return `${ehUrl}/o/authorize/?${params.toString()}`;
+  const authorizeUrl = `${ehUrl}/o/authorize/?${params.toString()}`;
+
+  return authorizeUrl;
 }
 
 export async function handleEventHorizonCallback(code: string, state: string) {
   const { clientId, clientSecret, ehUrl } = getEHConfig();
-  const { redirectUri } = verifyStateToken(state);
+  const { redirectUri, codeVerifier } = verifyStateToken(state);
 
   // Build the backend callback URL (must match what was sent in authorize)
   const backendUrl = process.env.VERCEL_URL
@@ -234,6 +246,7 @@ export async function handleEventHorizonCallback(code: string, state: string) {
       redirect_uri: callbackUri,
       client_id: clientId,
       client_secret: clientSecret,
+      code_verifier: codeVerifier,
     }),
   });
 

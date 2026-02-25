@@ -3,19 +3,33 @@
 // SPDX-License-Identifier: GPL-3.0
 
 import { onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { setTokens } from "@/services/api";
+import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
+const route = useRoute();
+const auth = useAuthStore();
 const error = ref<string | null>(null);
 
-onMounted(() => {
-  const params = new URLSearchParams(window.location.search);
-  const accessToken = params.get("access_token");
-  const refreshToken = params.get("refresh_token");
+onMounted(async () => {
+  // Try vue-router query first, fall back to raw URL search params
+  const accessToken =
+    (route.query.access_token as string) ||
+    new URLSearchParams(window.location.search).get("access_token");
+  const refreshToken =
+    (route.query.refresh_token as string) ||
+    new URLSearchParams(window.location.search).get("refresh_token");
 
   if (accessToken && refreshToken) {
     setTokens(accessToken, refreshToken);
+
+    // Try to load profile, but don't fail the whole flow if it errors
+    try {
+      await auth.loadProfile();
+    } catch (err) {
+      console.warn("[EH Callback] profile load failed, continuing anyway:", err);
+    }
 
     // Clean tokens from URL before navigating
     window.history.replaceState({}, "", window.location.pathname);

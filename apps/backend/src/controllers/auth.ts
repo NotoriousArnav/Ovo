@@ -63,7 +63,16 @@ export async function eventHorizonLoginRedirect(req: Request, res: Response, nex
 
 export async function eventHorizonCallback(req: Request, res: Response, next: NextFunction) {
   try {
-    const { code, state } = req.query;
+    const { code, state, error: oauthError, error_description } = req.query;
+
+    if (oauthError) {
+      console.error("[EH Callback] OAuth error:", oauthError, error_description);
+      res.status(400).json({
+        success: false,
+        message: `Event Horizon denied the request: ${oauthError}${error_description ? ` — ${error_description}` : ""}`,
+      });
+      return;
+    }
 
     if (typeof code !== "string" || typeof state !== "string") {
       res.status(400).json({
