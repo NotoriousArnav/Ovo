@@ -88,3 +88,17 @@ export interface TaskStats {
   completed: number;
   completionRate: number;
 }
+
+// ─── API Keys ────────────────────────────────────────
+export interface ApiKey {
+  id: string;
+  name: string;
+  keyPrefix: string;
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+
+export interface ApiKeyCreated extends ApiKey {
+  /** The raw key — shown only once on creation, never stored or retrievable again. */
+  key: string;
+}

@@ -11,13 +11,15 @@ Complete reference for the Ovo REST API. All endpoints are prefixed with `/api`.
 
 ## Authentication
 
-Protected endpoints require a JWT access token in the `Authorization` header:
+Protected endpoints require a Bearer token in the `Authorization` header:
 
 ```
-Authorization: Bearer <accessToken>
+Authorization: Bearer <accessToken or apiKey>
 ```
 
-Access tokens expire after **15 minutes**. Use the [refresh endpoint](#post-apiauthrefresh) to obtain a new one.
+You can use either:
+- **JWT access token** — obtained from login/register, expires after 15 minutes. Use the [refresh endpoint](#post-apiauthrefresh) to get a new one.
+- **API key** — obtained from the [API keys endpoints](#api-keys) or the Profile page in the web/mobile app. Prefixed with `ovo_k_`, never expires. Revoke it when you no longer need it.
 
 ## Response Format
 
@@ -704,6 +706,122 @@ curl https://ovo-backend.vercel.app/api/user/profile \
 
 ---
 
+## API Keys
+
+API keys provide long-lived authentication for programmatic access (e.g. the Ovo MCP server). All API key endpoints require JWT authentication — you can't use an API key to manage API keys.
+
+### `POST /api/keys`
+
+Create a new API key. The raw key is returned **once** in the response — store it securely. Maximum 10 keys per user.
+
+**Request Body**
+
+| Field | Type | Required | Constraints |
+|-------|------|----------|-------------|
+| `name` | string | Yes | 1-50 characters, trimmed |
+
+**Response** `201 Created`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "cm5key001",
+    "name": "MCP Server",
+    "keyPrefix": "ovo_k_a1b2c3",
+    "createdAt": "2026-02-25T12:00:00.000Z",
+    "key": "ovo_k_a1b2c3d4e5f6..."
+  }
+}
+```
+
+> The `key` field is the full raw key. It is only returned on creation — it's SHA-256 hashed in the database and can never be retrieved again.
+
+**Error Responses**
+
+| Status | Condition | Body |
+|--------|-----------|------|
+| 400 | Validation failed or 10-key limit reached | `{ "success": false, "message": "Maximum of 10 API keys per user" }` |
+| 401 | Missing/invalid token | `{ "success": false, "message": "Authentication required" }` |
+
+**curl**
+
+```bash
+curl -X POST https://ovo-backend.vercel.app/api/keys \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <accessToken>" \
+  -d '{
+    "name": "MCP Server"
+  }'
+```
+
+---
+
+### `GET /api/keys`
+
+List all API keys for the authenticated user. Only metadata is returned — the raw key is never stored.
+
+**Response** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "cm5key001",
+      "name": "MCP Server",
+      "keyPrefix": "ovo_k_a1b2c3",
+      "lastUsedAt": "2026-02-25T14:00:00.000Z",
+      "createdAt": "2026-02-25T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+**curl**
+
+```bash
+curl https://ovo-backend.vercel.app/api/keys \
+  -H "Authorization: Bearer <accessToken>"
+```
+
+---
+
+### `DELETE /api/keys/:id`
+
+Revoke (permanently delete) an API key. The key immediately stops working.
+
+**Path Parameters**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `id` | string | API key CUID |
+
+**Response** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "API key revoked"
+}
+```
+
+**Error Responses**
+
+| Status | Condition | Body |
+|--------|-----------|------|
+| 401 | Missing/invalid token | `{ "success": false, "message": "Authentication required" }` |
+| 404 | Key not found or not owned by user | `{ "success": false, "message": "API key not found" }` |
+
+**curl**
+
+```bash
+curl -X DELETE https://ovo-backend.vercel.app/api/keys/cm5key001 \
+  -H "Authorization: Bearer <accessToken>"
+```
+
+---
+
 ## End-to-End Example
 
 Here's a complete flow: register, create a task, list tasks, and log out.
@@ -768,3 +886,6 @@ curl -s -X POST https://ovo-backend.vercel.app/api/auth/logout \
 | `PUT` | `/api/tasks/:id` | Yes | Update task |
 | `DELETE` | `/api/tasks/:id` | Yes | Delete task |
 | `GET` | `/api/user/profile` | Yes | Get user profile |
+| `POST` | `/api/keys` | Yes | Create API key |
+| `GET` | `/api/keys` | Yes | List API keys |
+| `DELETE` | `/api/keys/:id` | Yes | Revoke API key |

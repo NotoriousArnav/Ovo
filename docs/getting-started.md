@@ -19,7 +19,7 @@ cd Ovo
 pnpm install
 ```
 
-pnpm will install dependencies for all workspaces (`apps/backend`, `apps/web`, `apps/mobile`, `packages/shared`) and hoist them according to `.npmrc`:
+pnpm will install dependencies for all workspaces (`apps/backend`, `apps/web`, `apps/mobile`, `apps/mcp`, `packages/shared`) and hoist them according to `.npmrc`:
 
 ```ini
 node-linker=hoisted
@@ -90,11 +90,12 @@ pnpm --filter @ovo/backend db:generate
 pnpm --filter @ovo/backend db:push
 ```
 
-The Prisma schema is at `apps/backend/prisma/schema.prisma`. It defines three models:
+The Prisma schema is at `apps/backend/prisma/schema.prisma`. It defines four models:
 
 - **User** — `id`, `name`, `email`, `passwordHash`, `authProvider`, timestamps
 - **Task** — `id`, `title`, `description`, `status`, `priority`, `dueDate`, `userId`, timestamps
 - **RefreshToken** — `id`, `token`, `userId`, `expiresAt`, `createdAt`
+- **ApiKey** — `id`, `name`, `keyHash`, `keyPrefix`, `lastUsedAt`, `userId`, timestamps
 
 Other useful database commands:
 

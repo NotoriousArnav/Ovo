@@ -20,6 +20,7 @@
     "@pchmn/expo-material3-theme": "^1.4.0",
     "axios": "^1.7.0",
     "expo": "~54.0.33",
+    "expo-clipboard": "^8.0.8",
     "expo-router": "~6.0.23",
     "expo-secure-store": "~15.0.8",
     "expo-splash-screen": "~31.0.13",

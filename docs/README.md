@@ -18,7 +18,7 @@
 
 2. **[Architecture](./architecture.md)** — Monorepo layout, tech stack rationale, request lifecycle, authentication flow, state management.
 
-3. **[API Reference](./api-reference.md)** — All 14 REST endpoints with request/response schemas, validation rules, and copy-pasteable curl examples.
+3. **[API Reference](./api-reference.md)** — All 17 REST endpoints with request/response schemas, validation rules, and copy-pasteable curl examples.
 
 4. **[Mobile App](./mobile-app.md)** — Screens, navigation structure, Material You theming, Zustand stores, API service layer, building the APK.
 
@@ -30,12 +30,15 @@
 
 8. **[Event Horizon OAuth](./event-horizon-oauth.md)** — Community SSO via OAuth2 + PKCE, environment setup, flow walkthrough, client implementations, and gotchas.
 
+9. **[MCP Server](./mcp-server.md)** — Expose your Ovo tasks to AI assistants via Model Context Protocol. Setup, tools & resources reference, client configs for Claude/Cursor/OpenCode.
+
 ## Project Structure
 
 ```
 Ovo/
 ├── apps/
 │   ├── backend/         # Express.js API (Prisma + NeonDB + JWT)
+│   ├── mcp/             # MCP server (AI assistant integration)
 │   ├── web/             # Vue 3 SPA (Pinia, MD3, Vite)
 │   └── mobile/          # Expo SDK 54 React Native app
 ├── packages/

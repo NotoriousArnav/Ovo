@@ -10,6 +10,7 @@ import swaggerDocument from "./swagger";
 import { authRouter } from "./routes/auth";
 import { taskRouter } from "./routes/tasks";
 import { userRouter } from "./routes/user";
+import { apiKeyRouter } from "./routes/apiKeys";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -45,6 +46,7 @@ app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
 app.use("/api/auth", authRouter);
 app.use("/api/tasks", taskRouter);
 app.use("/api/user", userRouter);
+app.use("/api/keys", apiKeyRouter);
 
 // ─── 404 Handler ─────────────────────────────────────
 app.use((_req, res) => {
