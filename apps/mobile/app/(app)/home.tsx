@@ -12,12 +12,16 @@ import {
   Portal,
   Dialog,
   Button,
+  Card,
+  ActivityIndicator,
 } from "react-native-paper";
 import { useFocusEffect, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { Task, TaskStatus } from "@ovo/shared";
+import Animated, { FadeInUp } from "react-native-reanimated";
+import type { Task, TaskStatus, DailySummary } from "@ovo/shared";
 import { useTaskStore } from "../../stores/taskStore";
 import { useAuthStore } from "../../stores/authStore";
+import { aiService } from "../../services/ai";
 import { TaskCard } from "../../components/TaskCard";
 import { ProgressCard } from "../../components/ProgressCard";
 import { StatusFilter } from "../../components/StatusFilter";
@@ -48,10 +52,40 @@ export default function HomeScreen() {
   const [deleteDialog, setDeleteDialog] = useState<Task | null>(null);
   const [searchVisible, setSearchVisible] = useState(false);
 
+  // ─── AI Daily Summary state ──────────────────────────
+  const [summary, setSummary] = useState<DailySummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryDismissed, setSummaryDismissed] = useState(false);
+
+  const loadSummary = useCallback(async () => {
+    setSummaryLoading(true);
+    setSummaryError(null);
+    try {
+      const data = await aiService.fetchDailySummary();
+      setSummary(data);
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 503) {
+        // AI not configured — silently hide
+        setSummaryDismissed(true);
+      } else if (status === 429) {
+        setSummaryError("Rate limit reached. Try again later.");
+      } else {
+        setSummaryError("Couldn't generate summary.");
+      }
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       fetchTasks(true);
       fetchStats();
+      if (!summary && !summaryDismissed) {
+        loadSummary();
+      }
     }, [])
   );
 
@@ -118,6 +152,131 @@ export default function HomeScreen() {
           style={[styles.searchbar, { borderRadius: 28 }]}
           inputStyle={{ paddingLeft: 0 }}
         />
+      )}
+
+      {/* AI Daily Summary */}
+      {!summaryDismissed && (
+        <Animated.View entering={FadeInUp.springify().damping(15)}>
+          {summaryLoading ? (
+            <Card
+              style={[styles.summaryCard, { borderColor: theme.colors.primary }]}
+              mode="outlined"
+            >
+              <Card.Content style={styles.summaryLoadingContent}>
+                <ActivityIndicator size="small" />
+                <Text
+                  variant="bodyMedium"
+                  style={{ color: theme.colors.onSurfaceVariant, marginLeft: 12 }}
+                >
+                  Generating your daily summary...
+                </Text>
+              </Card.Content>
+            </Card>
+          ) : summaryError ? (
+            <Card
+              style={[styles.summaryCard, { borderColor: theme.colors.error }]}
+              mode="outlined"
+            >
+              <Card.Content>
+                <Text variant="bodyMedium" style={{ color: theme.colors.error }}>
+                  {summaryError}
+                </Text>
+              </Card.Content>
+              <Card.Actions>
+                <Button compact onPress={loadSummary}>
+                  Retry
+                </Button>
+                <Button compact onPress={() => setSummaryDismissed(true)}>
+                  Dismiss
+                </Button>
+              </Card.Actions>
+            </Card>
+          ) : summary ? (
+            <Card
+              style={[styles.summaryCard, { borderColor: theme.colors.primary }]}
+              mode="outlined"
+            >
+              <Card.Content>
+                <View style={styles.summaryHeader}>
+                  <View style={styles.summaryTitleRow}>
+                    <Text
+                      variant="titleMedium"
+                      style={{ color: theme.colors.primary, fontWeight: "700" }}
+                    >
+                      Daily Focus
+                    </Text>
+                  </View>
+                  <View style={styles.summaryActions}>
+                    <IconButton
+                      icon="refresh"
+                      size={18}
+                      onPress={loadSummary}
+                      iconColor={theme.colors.onSurfaceVariant}
+                    />
+                    <IconButton
+                      icon="close"
+                      size={18}
+                      onPress={() => setSummaryDismissed(true)}
+                      iconColor={theme.colors.onSurfaceVariant}
+                    />
+                  </View>
+                </View>
+
+                <Text
+                  variant="bodyMedium"
+                  style={{ color: theme.colors.onSurface, marginBottom: 12 }}
+                >
+                  {summary.summary}
+                </Text>
+
+                {summary.focusTasks.map((ft, i) => (
+                  <View key={ft.id} style={styles.focusTaskRow}>
+                    <View
+                      style={[
+                        styles.focusRank,
+                        { backgroundColor: theme.colors.primary },
+                      ]}
+                    >
+                      <Text
+                        variant="labelSmall"
+                        style={{ color: theme.colors.onPrimary, fontWeight: "700" }}
+                      >
+                        {i + 1}
+                      </Text>
+                    </View>
+                    <View style={styles.focusTaskContent}>
+                      <Text
+                        variant="bodyMedium"
+                        style={{ color: theme.colors.onSurface, fontWeight: "600" }}
+                      >
+                        {ft.title}
+                      </Text>
+                      <Text
+                        variant="bodySmall"
+                        style={{ color: theme.colors.onSurfaceVariant }}
+                      >
+                        {ft.reason}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+
+                {summary.encouragement && (
+                  <Text
+                    variant="bodySmall"
+                    style={{
+                      color: theme.colors.onSurfaceVariant,
+                      fontStyle: "italic",
+                      marginTop: 8,
+                    }}
+                  >
+                    {summary.encouragement}
+                  </Text>
+                )}
+              </Card.Content>
+            </Card>
+          ) : null}
+        </Animated.View>
       )}
 
       {/* Progress */}
@@ -245,5 +404,49 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 16,
     elevation: 4,
+  },
+  summaryCard: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderRadius: 16,
+  },
+  summaryLoadingContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  summaryHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  summaryTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  summaryActions: {
+    flexDirection: "row",
+    marginRight: -8,
+  },
+  focusTaskRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 8,
+    gap: 10,
+  },
+  focusRank: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  focusTaskContent: {
+    flex: 1,
   },
 });

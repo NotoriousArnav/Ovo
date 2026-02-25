@@ -101,3 +101,28 @@ export const ehLoginRedirectSchema = z.object({
 });
 
 export type EHLoginRedirectInput = z.infer<typeof ehLoginRedirectSchema>;
+
+// ─── AI / Daily Summary Schemas ──────────────────────
+export const dailySummaryFocusTaskSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  reason: z.string(),
+});
+
+export const dailySummaryResponseSchema = z.object({
+  summary: z.string().describe("A short, ADHD-friendly overview of what the user should focus on today"),
+  focusTasks: z
+    .array(dailySummaryFocusTaskSchema)
+    .min(1)
+    .max(5)
+    .describe("Top 3-5 tasks to focus on, ordered by urgency"),
+  encouragement: z.string().describe("A brief, genuine encouragement — one sentence, no fluff"),
+});
+
+// ─── Notification Settings Schemas ───────────────────
+export const notificationSettingsSchema = z.object({
+  hour: z.number().int().min(0).max(23),
+  minute: z.number().int().min(0).max(59),
+});
+
+export type NotificationSettingsInput = z.infer<typeof notificationSettingsSchema>;

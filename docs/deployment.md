@@ -50,6 +50,12 @@ Set these in **Vercel Dashboard > Project Settings > Environment Variables**:
 | `JWT_REFRESH_SECRET` | Random 64-char hex | Yes |
 | `NODE_ENV` | `production` | Yes |
 | `CORS_ORIGIN` | `*` (or restrict to your domain) | No |
+| `AI_PROVIDER` | `groq` | No (only for AI daily summary) |
+| `AI_MODEL` | `llama-3.3-70b-versatile` | No (only for AI daily summary) |
+| `GROQ_API_KEY` | Groq API key | No (only for AI daily summary) |
+| `AI_RATE_LIMIT_ENABLED` | `true` | No |
+| `AI_RATE_LIMIT_MAX` | `20` | No |
+| `AI_RATE_LIMIT_WINDOW_MS` | `3600000` | No |
 | `EH_CLIENT_ID` | Event Horizon OAuth client ID | No (only for EH SSO) |
 | `EH_CLIENT_SECRET` | Event Horizon OAuth client secret | No (only for EH SSO) |
 | `EH_URL` | Event Horizon instance URL (e.g. `https://events.neopanda.tech`) | No (only for EH SSO) |
@@ -221,6 +227,9 @@ The workflow automatically detects whether signing secrets are configured and ap
 | `NODE_ENV` | `development` | `production` |
 | `CORS_ORIGIN` | `*` | Restrict as needed |
 | `PORT` | `3001` | Set by Vercel |
+| `GROQ_API_KEY` | Your Groq key (or omit to disable AI) | Your Groq key |
+| `AI_PROVIDER` | `groq` | `groq` |
+| `AI_MODEL` | `llama-3.3-70b-versatile` | `llama-3.3-70b-versatile` |
 
 In development, `morgan` logs requests in `dev` format and Prisma logs queries. In production, only errors are logged.
 

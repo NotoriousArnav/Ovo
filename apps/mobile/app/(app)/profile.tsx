@@ -15,6 +15,7 @@ import {
   Card,
   IconButton,
   ActivityIndicator,
+  Switch,
 } from "react-native-paper";
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
@@ -24,6 +25,15 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useAuthStore } from "../../stores/authStore";
 import { useTaskStore } from "../../stores/taskStore";
 import { apiKeyService } from "../../services/apiKeys";
+import { userService } from "../../services/user";
+import {
+  getNotificationTime,
+  setNotificationTime,
+  getNotificationsEnabled,
+  setNotificationsEnabled,
+  useNotifications,
+  type NotificationTime,
+} from "../../hooks/useNotifications";
 import type { ApiKey } from "@ovo/shared";
 
 export default function ProfileScreen() {
@@ -39,6 +49,11 @@ export default function ProfileScreen() {
   const [newKeyRaw, setNewKeyRaw] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
+  // ─── Notification settings state ───────────────────
+  const [notifEnabled, setNotifEnabled] = useState(true);
+  const [notifTime, setNotifTime] = useState<NotificationTime>({ hour: 9, minute: 0 });
+  const { reschedule } = useNotifications();
+
   const loadKeys = useCallback(async () => {
     setKeysLoading(true);
     try {
@@ -51,10 +66,26 @@ export default function ProfileScreen() {
     }
   }, []);
 
+  const loadNotificationSettings = useCallback(async () => {
+    try {
+      // Sync from backend first, then fall back to local
+      const remote = await userService.getNotificationTime();
+      setNotifTime({ hour: remote.hour, minute: remote.minute });
+      await setNotificationTime({ hour: remote.hour, minute: remote.minute });
+    } catch {
+      // Fall back to local SecureStore
+      const local = await getNotificationTime();
+      setNotifTime(local);
+    }
+    const enabled = await getNotificationsEnabled();
+    setNotifEnabled(enabled);
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       loadKeys();
-    }, [loadKeys])
+      loadNotificationSettings();
+    }, [loadKeys, loadNotificationSettings])
   );
 
   const handleCreateKey = async () => {
@@ -176,6 +207,87 @@ export default function ProfileScreen() {
               }
               left={(props) => <List.Icon {...props} icon="calendar" />}
             />
+          </List.Section>
+
+          <Divider style={styles.divider} />
+
+          {/* Notification Settings */}
+          <List.Section>
+            <List.Subheader>Notifications</List.Subheader>
+            <List.Item
+              title="Daily Summary"
+              description="Get a morning notification with your focus tasks"
+              left={(props) => <List.Icon {...props} icon="bell-outline" />}
+              right={() => (
+                <Switch
+                  value={notifEnabled}
+                  onValueChange={async (value) => {
+                    setNotifEnabled(value);
+                    await setNotificationsEnabled(value);
+                    if (value) {
+                      reschedule();
+                    }
+                  }}
+                />
+              )}
+            />
+            {notifEnabled && (
+              <View style={styles.timeRow}>
+                <Text
+                  variant="bodyMedium"
+                  style={{ color: theme.colors.onSurface, flex: 1, paddingLeft: 16 }}
+                >
+                  Notification time
+                </Text>
+                <View style={styles.timeControls}>
+                  <IconButton
+                    icon="minus"
+                    size={20}
+                    onPress={async () => {
+                      let { hour, minute } = notifTime;
+                      minute -= 30;
+                      if (minute < 0) {
+                        minute = 30;
+                        hour = hour <= 0 ? 23 : hour - 1;
+                      }
+                      const next = { hour, minute };
+                      setNotifTime(next);
+                      await setNotificationTime(next);
+                      try { await userService.updateNotificationTime(next); } catch {}
+                      reschedule();
+                    }}
+                  />
+                  <Text
+                    variant="titleMedium"
+                    style={{
+                      color: theme.colors.onSurface,
+                      fontVariant: ["tabular-nums"],
+                      minWidth: 56,
+                      textAlign: "center",
+                    }}
+                  >
+                    {String(notifTime.hour).padStart(2, "0")}:{String(notifTime.minute).padStart(2, "0")}
+                  </Text>
+                  <IconButton
+                    icon="plus"
+                    size={20}
+                    onPress={async () => {
+                      let { hour, minute } = notifTime;
+                      minute += 30;
+                      if (minute >= 60) {
+                        minute = 0;
+                        hour = hour >= 23 ? 0 : hour + 1;
+                      }
+                      const next = { hour, minute };
+                      setNotifTime(next);
+                      await setNotificationTime(next);
+                      try { await userService.updateNotificationTime(next); } catch {}
+                      reschedule();
+                    }}
+                  />
+                </View>
+              </View>
+            )}
           </List.Section>
 
           <Divider style={styles.divider} />
@@ -379,5 +491,15 @@ const styles = StyleSheet.create({
   },
   logoutContent: {
     paddingVertical: 8,
+  },
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: 4,
+    paddingVertical: 4,
+  },
+  timeControls: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 });

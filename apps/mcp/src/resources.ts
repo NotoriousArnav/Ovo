@@ -129,4 +129,37 @@ export function registerResources(server: McpServer): void {
       };
     }
   );
+
+  // ── ovo://daily-summary — AI daily summary ──
+  server.registerResource(
+    "daily-summary",
+    "ovo://daily-summary",
+    {
+      title: "Daily Summary",
+      description: "Your AI-powered daily task summary with focus tasks and encouragement",
+      mimeType: "application/json",
+    },
+    async (uri) => {
+      try {
+        const result = await api.getDailySummary();
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              text: JSON.stringify(result.data, null, 2),
+            },
+          ],
+        };
+      } catch {
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              text: JSON.stringify({ error: "AI features not available" }),
+            },
+          ],
+        };
+      }
+    }
+  );
 }

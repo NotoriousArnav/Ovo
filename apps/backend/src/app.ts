@@ -11,6 +11,7 @@ import { authRouter } from "./routes/auth";
 import { taskRouter } from "./routes/tasks";
 import { userRouter } from "./routes/user";
 import { apiKeyRouter } from "./routes/apiKeys";
+import { aiRouter } from "./routes/ai";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -47,6 +48,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/tasks", taskRouter);
 app.use("/api/user", userRouter);
 app.use("/api/keys", apiKeyRouter);
+app.use("/api/ai", aiRouter);
 
 // ─── 404 Handler ─────────────────────────────────────
 app.use((_req, res) => {
