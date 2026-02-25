@@ -314,4 +314,138 @@ export function registerTools(server: McpServer): void {
       }
     }
   );
+
+  // ── get_daily_summary ──
+  server.registerTool(
+    "get_daily_summary",
+    {
+      title: "Get Daily Summary",
+      description:
+        "Get your AI-powered daily summary — tells you the top 3 tasks to focus on today, with a brief encouragement. Cached once per day.",
+      inputSchema: z.object({}),
+    },
+    async () => {
+      try {
+        const result = await api.getDailySummary();
+        const s = result.data;
+
+        const lines = [
+          `# Daily Summary`,
+          ``,
+          s.summary,
+          ``,
+          `## Focus Tasks`,
+          ``,
+        ];
+
+        s.focusTasks.forEach((ft, i) => {
+          lines.push(`${i + 1}. **${ft.title}** — ${ft.reason}`);
+        });
+
+        lines.push(``, `---`, ``, `_${s.encouragement}_`, ``, `_Generated at ${s.generatedAt}_`);
+
+        return {
+          content: [{ type: "text" as const, text: lines.join("\n") }],
+        };
+      } catch (error) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: `Error getting daily summary: ${formatError(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // ── get_notification_time ──
+  server.registerTool(
+    "get_notification_time",
+    {
+      title: "Get Notification Time",
+      description:
+        "Get the user's preferred daily summary notification time (used by the mobile app for local push notifications).",
+      inputSchema: z.object({}),
+    },
+    async () => {
+      try {
+        const result = await api.getNotificationTime();
+        const { hour, minute } = result.data;
+        const formatted = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Daily summary notification is scheduled for **${formatted}** every day.`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: `Error getting notification time: ${formatError(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // ── set_notification_time ──
+  server.registerTool(
+    "set_notification_time",
+    {
+      title: "Set Notification Time",
+      description:
+        "Set the user's preferred daily summary notification time. The mobile app will schedule local push notifications at this time.",
+      inputSchema: z.object({
+        hour: z
+          .number()
+          .int()
+          .min(0)
+          .max(23)
+          .describe("Hour of the day (0-23)"),
+        minute: z
+          .number()
+          .int()
+          .min(0)
+          .max(59)
+          .describe("Minute of the hour (0-59)"),
+      }),
+    },
+    async ({ hour, minute }) => {
+      try {
+        const result = await api.setNotificationTime({ hour, minute });
+        const h = result.data.hour;
+        const m = result.data.minute;
+        const formatted = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Notification time updated to **${formatted}**. The mobile app will schedule notifications at this time.`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: `Error setting notification time: ${formatError(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
 }

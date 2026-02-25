@@ -16,12 +16,15 @@ model User {
   email        String   @unique
   passwordHash String?  @map("password_hash")
   authProvider String   @default("local") @map("auth_provider")
+  notificationHour   Int @default(9)  @map("notification_hour")
+  notificationMinute Int @default(0)  @map("notification_minute")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  tasks         Task[]
-  refreshTokens RefreshToken[]
-  apiKeys       ApiKey[]
+  tasks           Task[]
+  refreshTokens   RefreshToken[]
+  apiKeys         ApiKey[]
+  summaryCache    DailySummaryCache[]
 
   @@map("users")
 }
@@ -74,6 +77,21 @@ model ApiKey {
   @@index([keyHash])
   @@index([userId])
   @@map("api_keys")
+}
+
+model DailySummaryCache {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  date      String   // YYYY-MM-DD — one cached summary per user per day
+  summary   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@map("daily_summary_cache")
 }
 
 enum TaskStatus {

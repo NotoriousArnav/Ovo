@@ -36,6 +36,7 @@ const swaggerDocument: JsonObject = {
     { name: "Tasks", description: "Task CRUD and statistics" },
     { name: "User", description: "User profile" },
     { name: "API Keys", description: "API key management for MCP and programmatic access" },
+    { name: "AI", description: "AI-powered features (daily summary, task analysis)" },
   ],
   components: {
     securitySchemes: {
@@ -187,6 +188,40 @@ const swaggerDocument: JsonObject = {
           key: { type: "string", example: "ovo_k_a1b2c3d4e5f6..." },
         },
         required: ["id", "name", "keyPrefix", "createdAt", "key"],
+      },
+
+      // ─── AI / Daily Summary ──────────────────────────
+      DailySummaryFocusTask: {
+        type: "object",
+        properties: {
+          id: { type: "string", example: "cm5abc123" },
+          title: { type: "string", example: "Review PR #42" },
+          reason: { type: "string", example: "Due today, high priority" },
+        },
+        required: ["id", "title", "reason"],
+      },
+      DailySummary: {
+        type: "object",
+        properties: {
+          summary: { type: "string", example: "You have 3 overdue tasks and 2 due today. Focus on the high-priority items first." },
+          focusTasks: {
+            type: "array",
+            items: { $ref: "#/components/schemas/DailySummaryFocusTask" },
+          },
+          encouragement: { type: "string", example: "You knocked out 5 tasks yesterday — keep that momentum going." },
+          generatedAt: { type: "string", format: "date-time" },
+        },
+        required: ["summary", "focusTasks", "encouragement", "generatedAt"],
+      },
+
+      // ─── Notification Settings ─────────────────────────
+      NotificationSettings: {
+        type: "object",
+        properties: {
+          hour: { type: "integer", minimum: 0, maximum: 23, example: 9, description: "Hour of the day (0-23)" },
+          minute: { type: "integer", minimum: 0, maximum: 59, example: 0, description: "Minute of the hour (0-59)" },
+        },
+        required: ["hour", "minute"],
       },
     },
   },
@@ -1011,6 +1046,95 @@ const swaggerDocument: JsonObject = {
       },
     },
 
+    // ── User: Notification Time ──
+    "/api/user/notification-time": {
+      get: {
+        tags: ["User"],
+        summary: "Get notification time",
+        description: "Returns the user's preferred daily summary notification time. Defaults to 09:00.",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": {
+            description: "Notification time settings",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: { $ref: "#/components/schemas/NotificationSettings" },
+                  },
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Authentication required",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+          "404": {
+            description: "User not found",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+                example: { success: false, message: "User not found" },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        tags: ["User"],
+        summary: "Update notification time",
+        description: "Updates the user's preferred daily summary notification time. The mobile app uses this to schedule local push notifications.",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/NotificationSettings" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Notification time updated",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: { $ref: "#/components/schemas/NotificationSettings" },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Validation failed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationError" },
+              },
+            },
+          },
+          "401": {
+            description: "Authentication required",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+        },
+      },
+    },
+
     // ── API Keys: List / Create ──
     "/api/keys": {
       get: {
@@ -1151,6 +1275,67 @@ const swaggerDocument: JsonObject = {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ApiError" },
                 example: { success: false, message: "API key not found" },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    // ── AI ──
+    "/api/ai/daily-summary": {
+      get: {
+        tags: ["AI"],
+        summary: "Get AI daily summary",
+        description: "Returns an AI-generated daily summary with the top tasks to focus on. Cached once per user per day (subsequent requests return the cached version). Rate-limited to 20 requests per hour per user. Returns 503 if AI features are not configured.",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": {
+            description: "Daily summary generated successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: { $ref: "#/components/schemas/DailySummary" },
+                  },
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Authentication required",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+          "429": {
+            description: "Rate limit exceeded",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+                example: { success: false, message: "Too many AI requests — please try again later" },
+              },
+            },
+          },
+          "502": {
+            description: "AI provider error",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+                example: { success: false, message: "Failed to generate daily summary" },
+              },
+            },
+          },
+          "503": {
+            description: "AI features not configured",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+                example: { success: false, message: "AI features are not configured" },
               },
             },
           },

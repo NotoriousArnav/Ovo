@@ -197,3 +197,38 @@ export async function getStats(): Promise<{ data: TaskStats }> {
 export async function getProfile(): Promise<{ data: UserProfile }> {
   return request<{ data: UserProfile }>("/api/user/profile");
 }
+
+// ─── AI / Daily Summary ──────────────────────────────
+
+export interface DailySummaryFocusTask {
+  id: string;
+  title: string;
+  reason: string;
+}
+
+export interface DailySummary {
+  summary: string;
+  focusTasks: DailySummaryFocusTask[];
+  encouragement: string;
+  generatedAt: string;
+}
+
+export interface NotificationSettings {
+  hour: number;
+  minute: number;
+}
+
+export async function getDailySummary(): Promise<{ data: DailySummary }> {
+  return request<{ data: DailySummary }>("/api/ai/daily-summary");
+}
+
+export async function getNotificationTime(): Promise<{ data: NotificationSettings }> {
+  return request<{ data: NotificationSettings }>("/api/user/notification-time");
+}
+
+export async function setNotificationTime(settings: NotificationSettings): Promise<{ data: NotificationSettings }> {
+  return request<{ data: NotificationSettings }>("/api/user/notification-time", {
+    method: "PUT",
+    body: JSON.stringify(settings),
+  });
+}

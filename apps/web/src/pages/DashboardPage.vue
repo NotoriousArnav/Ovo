@@ -2,6 +2,8 @@
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useTaskStore } from "@/stores/tasks";
+import { fetchDailySummary } from "@/services/ai";
+import type { DailySummary } from "@ovo/shared";
 import TaskCard from "@/components/TaskCard.vue";
 import StatsBar from "@/components/StatsBar.vue";
 import TaskFilters from "@/components/TaskFilters.vue";
@@ -11,9 +13,37 @@ const taskStore = useTaskStore();
 const searchInput = ref("");
 let searchTimeout: ReturnType<typeof setTimeout>;
 
+// ─── Daily Summary state ─────────────────────────────
+const summary = ref<DailySummary | null>(null);
+const summaryLoading = ref(false);
+const summaryError = ref<string | null>(null);
+const summaryDismissed = ref(false);
+
+async function loadSummary() {
+  summaryLoading.value = true;
+  summaryError.value = null;
+  try {
+    summary.value = await fetchDailySummary();
+  } catch (err: any) {
+    const status = err?.response?.status;
+    if (status === 503) {
+      // AI not configured — silently hide
+      summaryError.value = null;
+      summaryDismissed.value = true;
+    } else if (status === 429) {
+      summaryError.value = "Rate limit reached — try again later";
+    } else {
+      summaryError.value = "Couldn't load AI summary";
+    }
+  } finally {
+    summaryLoading.value = false;
+  }
+}
+
 onMounted(() => {
   taskStore.loadTasks(1);
   taskStore.loadStats();
+  loadSummary();
 });
 
 function handleSearch(value: string) {
@@ -31,6 +61,45 @@ function goToPage(page: number) {
 
 <template>
   <div class="dashboard">
+    <!-- ─── AI Daily Summary ─────────────────────────── -->
+    <div v-if="summaryLoading && !summaryDismissed" class="summary-card card card-outlined summary-loading">
+      <div class="spinner"></div>
+      <span class="text-muted text-sm">Generating your daily focus...</span>
+    </div>
+
+    <div v-else-if="summary && !summaryDismissed" class="summary-card card card-outlined">
+      <div class="summary-header">
+        <div class="summary-title">
+          <span class="summary-icon">&#9889;</span>
+          <strong>Daily Focus</strong>
+        </div>
+        <div class="summary-actions">
+          <button class="btn btn-sm btn-secondary" @click="loadSummary" :disabled="summaryLoading" title="Refresh summary">
+            &#8635;
+          </button>
+          <button class="btn btn-sm btn-text" @click="summaryDismissed = true" title="Dismiss">
+            &#10005;
+          </button>
+        </div>
+      </div>
+      <p class="summary-text">{{ summary.summary }}</p>
+      <div class="focus-tasks">
+        <div v-for="(ft, idx) in summary.focusTasks" :key="ft.id" class="focus-task">
+          <span class="focus-rank">{{ idx + 1 }}</span>
+          <div class="focus-info">
+            <span class="focus-title">{{ ft.title }}</span>
+            <span class="focus-reason text-muted text-xs">{{ ft.reason }}</span>
+          </div>
+        </div>
+      </div>
+      <p class="summary-encouragement text-muted text-sm">{{ summary.encouragement }}</p>
+    </div>
+
+    <div v-else-if="summaryError && !summaryDismissed" class="summary-card card card-outlined summary-error">
+      <span class="text-muted text-sm">{{ summaryError }}</span>
+      <button class="btn btn-sm btn-secondary" @click="loadSummary">Retry</button>
+    </div>
+
     <!-- ─── Stats ──────────────────────────────────── -->
     <StatsBar v-if="taskStore.stats" :stats="taskStore.stats" />
 
@@ -147,5 +216,99 @@ function goToPage(page: number) {
   justify-content: center;
   gap: 16px;
   padding: 16px 0;
+}
+
+/* ─── Daily Summary ──────────────────────────────── */
+.summary-card {
+  padding: 20px;
+  border-left: 4px solid var(--md-primary);
+}
+
+.summary-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.summary-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+}
+
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.summary-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+}
+
+.summary-icon {
+  font-size: 1.2rem;
+}
+
+.summary-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.summary-text {
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.focus-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.focus-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--md-surface-container-low);
+  border-radius: var(--md-radius-sm);
+}
+
+.focus-rank {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.focus-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.focus-title {
+  font-weight: 500;
+}
+
+.summary-encouragement {
+  font-style: italic;
 }
 </style>

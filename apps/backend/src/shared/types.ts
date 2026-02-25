@@ -102,3 +102,23 @@ export interface ApiKeyCreated extends ApiKey {
   /** The raw key — shown only once on creation, never stored or retrievable again. */
   key: string;
 }
+
+// ─── Notification Settings ────────────────────────────
+export interface NotificationSettings {
+  hour: number;   // 0-23
+  minute: number; // 0-59
+}
+
+// ─── AI / Daily Summary ──────────────────────────────
+export interface DailySummaryFocusTask {
+  id: string;
+  title: string;
+  reason: string;
+}
+
+export interface DailySummary {
+  summary: string;
+  focusTasks: DailySummaryFocusTask[];
+  encouragement: string;
+  generatedAt: string;
+}
