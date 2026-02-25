@@ -44,3 +44,10 @@ yarn-error.log*
 
 # Local build scripts
 build-apk.sh
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Vite build artifacts (generated from .ts sources)
+vite.config.js
+vite.config.d.ts
