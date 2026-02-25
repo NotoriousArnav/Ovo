@@ -6,6 +6,11 @@ import { getAccessToken } from "@/services/api";
 
 const routes: RouteRecordRaw[] = [
   {
+    path: "/docs",
+    name: "docs",
+    component: () => import("@/pages/DocsPage.vue"),
+  },
+  {
     path: "/login",
     name: "login",
     component: () => import("@/pages/LoginPage.vue"),

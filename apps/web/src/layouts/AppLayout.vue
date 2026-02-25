@@ -28,6 +28,7 @@ async function handleLogout() {
           <RouterLink to="/" class="nav-link" active-class="nav-link--active">Dashboard</RouterLink>
           <RouterLink to="/tasks/new" class="nav-link" active-class="nav-link--active">New Task</RouterLink>
           <RouterLink to="/profile" class="nav-link" active-class="nav-link--active">Profile</RouterLink>
+          <RouterLink to="/docs" class="nav-link" active-class="nav-link--active">Docs</RouterLink>
         </nav>
 
         <div class="app-bar-end">
@@ -46,6 +47,7 @@ async function handleLogout() {
         <RouterLink to="/" class="mobile-link">Dashboard</RouterLink>
         <RouterLink to="/tasks/new" class="mobile-link">New Task</RouterLink>
         <RouterLink to="/profile" class="mobile-link">Profile</RouterLink>
+        <RouterLink to="/docs" class="mobile-link">Docs</RouterLink>
         <button class="mobile-link logout" @click="handleLogout">Logout</button>
       </nav>
     </header>

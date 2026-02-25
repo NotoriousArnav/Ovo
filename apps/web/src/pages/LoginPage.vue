@@ -79,6 +79,8 @@ async function handleSubmit() {
       <p class="auth-footer text-sm text-muted text-center mt-4">
         Don't have an account?
         <RouterLink to="/register">Create one</RouterLink>
+        <span class="auth-sep">·</span>
+        <RouterLink to="/docs">Docs</RouterLink>
       </p>
     </div>
   </div>
@@ -118,5 +120,9 @@ async function handleSubmit() {
   background: var(--md-error-container);
   color: var(--md-on-error-container);
   font-size: 0.875rem;
+}
+
+.auth-sep {
+  margin: 0 4px;
 }
 </style>
