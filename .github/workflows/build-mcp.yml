@@ -180,11 +180,13 @@ jobs:
         run: ls -lh mcp-binaries/
 
       # Upload to existing release (created by build-apk.yml) or create new one
+      # Uses append_body so APK and MCP workflows don't overwrite each other
       - name: Attach to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.sha.outputs.short_sha }}
           name: Ovo (${{ steps.sha.outputs.short_sha }})
+          append_body: true
           body: |
             **Build from [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})**
 
@@ -199,5 +201,7 @@ jobs:
             | macOS Intel | `ovo-mcp-darwin-x64-${{ steps.sha.outputs.short_sha }}` |
             | Windows x64 | `ovo-mcp-win-x64-${{ steps.sha.outputs.short_sha }}.exe` |
             | Windows arm64 | `ovo-mcp-win-arm64-${{ steps.sha.outputs.short_sha }}.exe` |
+
+            ---
           files: mcp-binaries/*
           generate_release_notes: true
