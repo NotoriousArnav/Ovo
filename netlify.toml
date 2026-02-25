@@ -4,7 +4,7 @@
 [build]
   base = "apps/web"
   command = "cd ../.. && pnpm install --frozen-lockfile && pnpm build:web"
-  publish = "apps/web/dist"
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "20"
