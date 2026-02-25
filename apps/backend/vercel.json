@@ -8,7 +8,7 @@
     "api/index.ts": {
       "memory": 256,
       "maxDuration": 10,
-      "includeFiles": "src/**,prisma/**,node_modules/.prisma/**,node_modules/@prisma/client/**"
+      "includeFiles": "src/**,prisma/**,node_modules/.prisma/**,node_modules/@prisma/client/**,node_modules/swagger-ui-express/**,node_modules/swagger-ui-dist/**"
     }
   },
   "rewrites": [
