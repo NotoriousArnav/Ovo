@@ -1,5 +1,6 @@
-# Ovo — Build Android APK
-# Builds a release APK on every push to main and uploads as artifact
+# Ovo — Build Android APKs (multi-arch, rolling release)
+# Builds per-architecture release APKs on every push to main
+# Tags releases by commit hash (rolling release model)
 # SPDX-License-Identifier: GPL-3.0
 
 name: Build APK
@@ -14,7 +15,7 @@ env:
 
 jobs:
   build:
-    name: Build Android APK
+    name: Build Android APKs
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -72,34 +73,78 @@ jobs:
           MYAPP_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
           EOF
 
+      # ── Enable ABI splits for per-architecture APKs ──
+      - name: Configure ABI splits
+        run: |
+          cat >> android/app/build.gradle <<'SPLITS'
+
+          // ── Per-architecture APK splits (added by CI) ──
+          android {
+              splits {
+                  abi {
+                      enable true
+                      reset()
+                      include "arm64-v8a", "armeabi-v7a", "x86_64", "x86"
+                      universalApk true
+                  }
+              }
+          }
+          SPLITS
+
       # ── Build ──
-      - name: Build Release APK
+      - name: Build Release APKs
         run: |
           cd android
           ./gradlew assembleRelease --no-daemon --stacktrace \
             -Dorg.gradle.jvmargs="-Xmx4g -XX:+HeapDumpOnOutOfMemoryError"
 
-      - name: Upload APK artifact
+      # ── Rename APKs to ovo-<arch>-<hash>-release.apk ──
+      - name: Rename APKs
+        id: rename
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          APK_DIR="android/app/build/outputs/apk/release"
+          OUT_DIR="android/app/build/outputs/apk/renamed"
+          mkdir -p "$OUT_DIR"
+
+          # Map Gradle ABI split filenames to architecture labels
+          for apk in "$APK_DIR"/*.apk; do
+            filename=$(basename "$apk")
+            case "$filename" in
+              *arm64-v8a*)   arch="arm64-v8a" ;;
+              *armeabi-v7a*) arch="armeabi-v7a" ;;
+              *x86_64*)      arch="x86_64" ;;
+              *x86*)         arch="x86" ;;
+              *universal*)   arch="universal" ;;
+              *)             arch="universal" ;;
+            esac
+            dest="$OUT_DIR/ovo-${arch}-${SHORT_SHA}-release.apk"
+            cp "$apk" "$dest"
+            echo "Renamed: $filename -> $(basename "$dest")"
+          done
+
+          echo "apk_dir=$OUT_DIR" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ovo-${{ github.sha }}.apk
-          path: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          name: ovo-${{ steps.rename.outputs.short_sha }}-apks
+          path: apps/mobile/${{ steps.rename.outputs.apk_dir }}/*.apk
           retention-days: 30
           if-no-files-found: error
 
-      # ── GitHub Release ──
-      - name: Get version
-        id: version
-        run: echo "version=$(node -p "require('./app.json').expo.version")" >> "$GITHUB_OUTPUT"
-
+      # ── GitHub Release (rolling — tagged by commit hash) ──
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.version }}-${{ github.run_number }}
-          name: Ovo v${{ steps.version.outputs.version }} (build ${{ github.run_number }})
+          tag_name: ${{ steps.rename.outputs.short_sha }}
+          name: Ovo (${{ steps.rename.outputs.short_sha }})
           body: |
-            **Automated build from commit [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})**
+            **Build from [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})**
 
-            Install the APK on your Android device (arm64).
-          files: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+            Architectures: `arm64-v8a` · `armeabi-v7a` · `x86_64` · `x86` · `universal`
+
+            Download the APK matching your device architecture, or use `universal` if unsure.
+          files: apps/mobile/${{ steps.rename.outputs.apk_dir }}/*.apk
           generate_release_notes: true
