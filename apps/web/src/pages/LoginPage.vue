@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useRouter, RouterLink } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { loginSchema } from "@ovo/shared";
@@ -11,6 +11,12 @@ const auth = useAuthStore();
 const email = ref("");
 const password = ref("");
 const fieldErrors = ref<Record<string, string>>({});
+
+const API_URL = import.meta.env.VITE_API_URL || "https://ovo-backend.vercel.app";
+const ehCallbackUrl = `${window.location.origin}/auth/eventhorizon/callback`;
+const ehLoginUrl = computed(() =>
+  `${API_URL}/api/auth/eventhorizon/login?redirect_uri=${encodeURIComponent(ehCallbackUrl)}`
+);
 
 async function handleSubmit() {
   fieldErrors.value = {};
@@ -76,6 +82,14 @@ async function handleSubmit() {
         </button>
       </form>
 
+      <div class="auth-divider">
+        <span class="auth-divider-text text-muted text-sm">or</span>
+      </div>
+
+      <a :href="ehLoginUrl" class="btn btn-outlined w-full eh-btn">
+        Sign in with Event Horizon
+      </a>
+
       <p class="auth-footer text-sm text-muted text-center mt-4">
         Don't have an account?
         <RouterLink to="/register">Create one</RouterLink>
@@ -124,5 +138,28 @@ async function handleSubmit() {
 
 .auth-sep {
   margin: 0 4px;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--md-outline-variant);
+}
+
+.eh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
 }
 </style>

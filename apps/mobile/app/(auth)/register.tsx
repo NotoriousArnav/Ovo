@@ -24,13 +24,25 @@ import { useAuthStore } from "../../stores/authStore";
 
 export default function RegisterScreen() {
   const theme = useTheme();
-  const { register, isLoading, error, clearError } = useAuthStore();
+  const { register, eventHorizonLogin, isLoading, error, clearError } = useAuthStore();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const handleEventHorizonLogin = async () => {
+    clearError();
+    try {
+      await eventHorizonLogin();
+      if (useAuthStore.getState().isAuthenticated) {
+        router.replace("/(app)/home");
+      }
+    } catch {
+      // Error is set in the store
+    }
+  };
 
   const handleRegister = async () => {
     setFieldErrors({});
@@ -164,6 +176,26 @@ export default function RegisterScreen() {
             Create Account
           </Button>
 
+          <View style={styles.dividerRow}>
+            <View style={[styles.dividerLine, { backgroundColor: theme.colors.outlineVariant }]} />
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              or
+            </Text>
+            <View style={[styles.dividerLine, { backgroundColor: theme.colors.outlineVariant }]} />
+          </View>
+
+          <Button
+            mode="outlined"
+            onPress={handleEventHorizonLogin}
+            loading={isLoading}
+            disabled={isLoading}
+            icon="shield-account-outline"
+            contentStyle={styles.buttonContent}
+            style={styles.button}
+          >
+            Sign in with Event Horizon
+          </Button>
+
           <View style={styles.linkRow}>
             <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
               Already have an account?{" "}
@@ -223,6 +255,16 @@ const styles = StyleSheet.create({
   },
   buttonContent: {
     paddingVertical: 8,
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginVertical: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
   },
   linkRow: {
     flexDirection: "row",

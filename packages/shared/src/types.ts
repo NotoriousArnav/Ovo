@@ -2,10 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0
 
 // ─── User ────────────────────────────────────────────
+export type AuthProvider = "local" | "eventhorizon";
+
 export interface User {
   id: string;
   name: string;
   email: string;
+  authProvider?: AuthProvider;
   createdAt: string;
   updatedAt: string;
 }

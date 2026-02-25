@@ -53,6 +53,7 @@ const swaggerDocument: JsonObject = {
           id: { type: "string", example: "cm5abc123def456" },
           name: { type: "string", example: "Arnav Sharma" },
           email: { type: "string", format: "email", example: "arnav@example.com" },
+          authProvider: { type: "string", enum: ["local", "eventhorizon"], example: "local", description: "Authentication provider used for this account" },
           createdAt: { type: "string", format: "date-time", example: "2025-01-15T12:00:00.000Z" },
           updatedAt: { type: "string", format: "date-time", example: "2025-01-15T12:00:00.000Z" },
         },
@@ -436,6 +437,97 @@ const swaggerDocument: JsonObject = {
                     message: { type: "string", example: "Logged out successfully" },
                   },
                 },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    // ── Auth: Event Horizon OAuth2 Login ──
+    "/api/auth/eventhorizon/login": {
+      get: {
+        tags: ["Auth"],
+        summary: "Initiate Event Horizon OAuth2 login",
+        description:
+          "Redirects the user to Event Horizon's authorization page. After authentication, Event Horizon redirects back to the backend callback, which then redirects the client to the provided redirect_uri with Ovo access and refresh tokens as query parameters.",
+        parameters: [
+          {
+            name: "redirect_uri",
+            in: "query",
+            required: true,
+            schema: { type: "string", format: "uri" },
+            description:
+              "The client URL to redirect to after successful authentication (must be in the server's allowed redirects list). Tokens will be appended as query parameters.",
+            example: "http://localhost:5173/auth/eventhorizon/callback",
+          },
+        ],
+        responses: {
+          "302": {
+            description: "Redirects to Event Horizon authorization page",
+          },
+          "400": {
+            description: "Invalid or disallowed redirect_uri",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+                example: { success: false, message: "Redirect URI not allowed" },
+              },
+            },
+          },
+          "500": {
+            description: "Event Horizon OAuth not configured",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    // ── Auth: Event Horizon OAuth2 Callback ──
+    "/api/auth/eventhorizon/callback": {
+      get: {
+        tags: ["Auth"],
+        summary: "Event Horizon OAuth2 callback",
+        description:
+          "Handles the OAuth2 callback from Event Horizon. Exchanges the authorization code for tokens, fetches the user profile, creates or links the Ovo account, and redirects to the client with Ovo tokens.",
+        parameters: [
+          {
+            name: "code",
+            in: "query",
+            required: true,
+            schema: { type: "string" },
+            description: "Authorization code from Event Horizon",
+          },
+          {
+            name: "state",
+            in: "query",
+            required: true,
+            schema: { type: "string" },
+            description: "Signed state token (JWT) for CSRF protection",
+          },
+        ],
+        responses: {
+          "302": {
+            description:
+              "Redirects to the client redirect_uri with access_token and refresh_token as query parameters",
+          },
+          "400": {
+            description: "Missing parameters or invalid/expired state",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+          "502": {
+            description: "Failed to communicate with Event Horizon",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
               },
             },
           },

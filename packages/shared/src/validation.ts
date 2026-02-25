@@ -83,3 +83,10 @@ export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 export type TaskFiltersInput = z.infer<typeof taskFiltersSchema>;
+
+// ─── Event Horizon OAuth ─────────────────────────────
+export const ehLoginRedirectSchema = z.object({
+  redirect_uri: z.string().url("Invalid redirect URI"),
+});
+
+export type EHLoginRedirectInput = z.infer<typeof ehLoginRedirectSchema>;

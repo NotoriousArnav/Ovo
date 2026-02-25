@@ -11,6 +11,7 @@ import type { RegisterInput, LoginInput } from "../shared";
 const SALT_ROUNDS = 12;
 const ACCESS_TOKEN_EXPIRY = "15m";
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
+const EH_STATE_EXPIRY = "5m";
 
 function generateAccessToken(userId: string): string {
   const secret = process.env.JWT_ACCESS_SECRET;
@@ -21,6 +22,39 @@ function generateAccessToken(userId: string): string {
 function generateRefreshToken(): string {
   return crypto.randomBytes(64).toString("hex");
 }
+
+// ─── EH OAuth helpers ────────────────────────────────
+
+function getEHConfig() {
+  const clientId = process.env.EH_CLIENT_ID;
+  const clientSecret = process.env.EH_CLIENT_SECRET;
+  const ehUrl = process.env.EH_URL || "https://events.neopanda.tech";
+  const allowedRedirects = (process.env.EH_ALLOWED_REDIRECTS || "").split(",").map((s) => s.trim()).filter(Boolean);
+
+  if (!clientId || !clientSecret) {
+    throw new AppError("Event Horizon OAuth is not configured", 500);
+  }
+
+  return { clientId, clientSecret, ehUrl, allowedRedirects };
+}
+
+function signStateToken(payload: Record<string, unknown>): string {
+  const secret = process.env.JWT_ACCESS_SECRET;
+  if (!secret) throw new AppError("JWT_ACCESS_SECRET not configured", 500);
+  return jwt.sign(payload, secret, { expiresIn: EH_STATE_EXPIRY });
+}
+
+function verifyStateToken(token: string): { redirectUri: string; nonce: string } {
+  const secret = process.env.JWT_ACCESS_SECRET;
+  if (!secret) throw new AppError("JWT_ACCESS_SECRET not configured", 500);
+  try {
+    return jwt.verify(token, secret) as { redirectUri: string; nonce: string };
+  } catch {
+    throw new AppError("Invalid or expired OAuth state", 400);
+  }
+}
+
+// ─── Local Auth ──────────────────────────────────────
 
 export async function registerUser(input: RegisterInput) {
   const existing = await prisma.user.findUnique({
@@ -76,6 +110,10 @@ export async function loginUser(input: LoginInput) {
 
   if (!user) {
     throw new AppError("Invalid email or password", 401);
+  }
+
+  if (!user.passwordHash) {
+    throw new AppError("This account uses Event Horizon login. Please sign in with Event Horizon.", 401);
   }
 
   const isValid = await bcrypt.compare(input.password, user.passwordHash);
@@ -145,4 +183,126 @@ export async function logoutUser(refreshTokenValue: string) {
   await prisma.refreshToken.deleteMany({
     where: { token: refreshTokenValue },
   });
+}
+
+// ─── Event Horizon OAuth ─────────────────────────────
+
+export function initiateEventHorizonLogin(redirectUri: string): string {
+  const { clientId, ehUrl, allowedRedirects } = getEHConfig();
+
+  if (!allowedRedirects.includes(redirectUri)) {
+    throw new AppError("Redirect URI not allowed", 400);
+  }
+
+  const nonce = crypto.randomBytes(16).toString("hex");
+  const state = signStateToken({ redirectUri, nonce });
+
+  // Build the backend callback URL (same origin as the request)
+  const backendUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : `http://localhost:${process.env.PORT || 3001}`;
+  const callbackUri = `${backendUrl}/api/auth/eventhorizon/callback`;
+
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: clientId,
+    redirect_uri: callbackUri,
+    scope: "read",
+    state,
+  });
+
+  return `${ehUrl}/o/authorize/?${params.toString()}`;
+}
+
+export async function handleEventHorizonCallback(code: string, state: string) {
+  const { clientId, clientSecret, ehUrl } = getEHConfig();
+  const { redirectUri } = verifyStateToken(state);
+
+  // Build the backend callback URL (must match what was sent in authorize)
+  const backendUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : `http://localhost:${process.env.PORT || 3001}`;
+  const callbackUri = `${backendUrl}/api/auth/eventhorizon/callback`;
+
+  // 1. Exchange code for EH access token
+  const tokenRes = await fetch(`${ehUrl}/o/token/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: callbackUri,
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+  });
+
+  if (!tokenRes.ok) {
+    const err = await tokenRes.text();
+    console.error("[EH Token Error]", err);
+    throw new AppError("Failed to exchange authorization code with Event Horizon", 502);
+  }
+
+  const tokenData = (await tokenRes.json()) as { access_token: string };
+
+  // 2. Fetch user profile from EH
+  const profileRes = await fetch(`${ehUrl}/accounts/api/me/`, {
+    headers: { Authorization: `Bearer ${tokenData.access_token}` },
+  });
+
+  if (!profileRes.ok) {
+    throw new AppError("Failed to fetch profile from Event Horizon", 502);
+  }
+
+  const profile = (await profileRes.json()) as {
+    username: string;
+    email: string;
+    first_name?: string;
+    last_name?: string;
+  };
+
+  if (!profile.email) {
+    throw new AppError("Event Horizon account has no email address", 400);
+  }
+
+  // 3. Find or create Ovo user (auto-link if existing)
+  const ehName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.username;
+
+  let user = await prisma.user.findUnique({
+    where: { email: profile.email },
+  });
+
+  if (user) {
+    // Auto-link: update authProvider if they were previously local-only
+    if (user.authProvider !== "eventhorizon") {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { authProvider: "eventhorizon" },
+      });
+    }
+  } else {
+    // Create new user with no password
+    user = await prisma.user.create({
+      data: {
+        name: ehName,
+        email: profile.email,
+        passwordHash: null,
+        authProvider: "eventhorizon",
+      },
+    });
+  }
+
+  // 4. Generate Ovo tokens
+  const accessToken = generateAccessToken(user.id);
+  const refreshToken = generateRefreshToken();
+
+  await prisma.refreshToken.create({
+    data: {
+      token: refreshToken,
+      userId: user.id,
+      expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  return { redirectUri, accessToken, refreshToken };
 }

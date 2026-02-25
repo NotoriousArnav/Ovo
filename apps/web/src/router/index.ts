@@ -28,6 +28,11 @@ const routes: RouteRecordRaw[] = [
     meta: { guest: true },
   },
   {
+    path: "/auth/eventhorizon/callback",
+    name: "eh-callback",
+    component: () => import("@/pages/EHCallbackPage.vue"),
+  },
+  {
     path: "/dashboard",
     component: () => import("@/layouts/AppLayout.vue"),
     meta: { auth: true },

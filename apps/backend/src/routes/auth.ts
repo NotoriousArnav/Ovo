@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0
 
 import { Router } from "express";
-import { register, login, refresh, logout } from "../controllers/auth";
+import { register, login, refresh, logout, eventHorizonLoginRedirect, eventHorizonCallback } from "../controllers/auth";
 import { validate } from "../middleware/validate";
 import { registerSchema, loginSchema, refreshTokenSchema } from "../shared";
 
@@ -12,3 +12,7 @@ authRouter.post("/register", validate(registerSchema), register);
 authRouter.post("/login", validate(loginSchema), login);
 authRouter.post("/refresh", validate(refreshTokenSchema), refresh);
 authRouter.post("/logout", logout);
+
+// Event Horizon OAuth2
+authRouter.get("/eventhorizon/login", eventHorizonLoginRedirect);
+authRouter.get("/eventhorizon/callback", eventHorizonCallback);
