@@ -49,8 +49,14 @@ Fill in the following:
 | `EH_URL` | No | Event Horizon instance URL | `https://events.neopanda.tech` |
 | `EH_ALLOWED_REDIRECTS` | No | Comma-separated allowlist of client OAuth redirect URIs | `http://localhost:5173/auth/eventhorizon/callback,ovo://auth/callback` |
 | `BASE_URL` | No | Public base URL of the backend (used for OAuth callback) | `https://ovo-backend.vercel.app` |
+| `AI_PROVIDER` | No | LLM provider for AI features (default: `groq`) | `groq` |
+| `AI_MODEL` | No | LLM model name (default: `llama-3.3-70b-versatile`) | `llama-3.3-70b-versatile` |
+| `GROQ_API_KEY` | No | Groq API key (required for AI daily summary) | `gsk_...` |
+| `AI_RATE_LIMIT_ENABLED` | No | Enable per-user AI rate limiting (default: `true`) | `true` |
+| `AI_RATE_LIMIT_MAX` | No | Max AI requests per window per user (default: `20`) | `20` |
+| `AI_RATE_LIMIT_WINDOW_MS` | No | Rate limit window in ms (default: `3600000` = 1 hour) | `3600000` |
 
-The EH variables are only needed if you want "Sign in with Event Horizon" — see [Event Horizon OAuth](./event-horizon-oauth.md) for the full setup.
+The EH variables are only needed if you want "Sign in with Event Horizon" — see [Event Horizon OAuth](./event-horizon-oauth.md) for the full setup. The AI variables are only needed if you want AI daily summaries — see [Architecture](./architecture.md#ai-daily-summary) for details.
 
 Generate JWT secrets:
 
@@ -90,12 +96,13 @@ pnpm --filter @ovo/backend db:generate
 pnpm --filter @ovo/backend db:push
 ```
 
-The Prisma schema is at `apps/backend/prisma/schema.prisma`. It defines four models:
+The Prisma schema is at `apps/backend/prisma/schema.prisma`. It defines five models:
 
-- **User** — `id`, `name`, `email`, `passwordHash`, `authProvider`, timestamps
+- **User** — `id`, `name`, `email`, `passwordHash`, `authProvider`, `notificationHour`, `notificationMinute`, timestamps
 - **Task** — `id`, `title`, `description`, `status`, `priority`, `dueDate`, `userId`, timestamps
 - **RefreshToken** — `id`, `token`, `userId`, `expiresAt`, `createdAt`
 - **ApiKey** — `id`, `name`, `keyHash`, `keyPrefix`, `lastUsedAt`, `userId`, timestamps
+- **DailySummaryCache** — `id`, `userId`, `date`, `summary`, `createdAt` (unique on `userId + date`, auto-cleaned)
 
 Other useful database commands:
 

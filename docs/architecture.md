@@ -16,17 +16,21 @@ Ovo/
 │   │   │   └── schema.prisma    # Database schema
 │   │   └── src/
 │   │       ├── controllers/     # Route handlers
+│   │       │   ├── ai.ts
 │   │       │   ├── auth.ts
 │   │       │   ├── tasks.ts
 │   │       │   └── user.ts
 │   │       ├── services/        # Business logic
+│   │       │   ├── ai.ts
 │   │       │   ├── auth.ts
 │   │       │   └── tasks.ts
 │   │       ├── middleware/       # Express middleware
 │   │       │   ├── auth.ts      # JWT authentication
 │   │       │   ├── errorHandler.ts
+│   │       │   ├── rateLimit.ts # Per-user AI rate limiting
 │   │       │   └── validate.ts  # Zod validation
 │   │       ├── routes/          # Route definitions
+│   │       │   ├── ai.ts
 │   │       │   ├── auth.ts
 │   │       │   ├── tasks.ts
 │   │       │   └── user.ts
@@ -35,6 +39,7 @@ Ovo/
 │   │       │   ├── types.ts
 │   │       │   └── validation.ts
 │   │       ├── lib/
+│   │       │   ├── llm.ts       # LLM model factory (Groq/LangChain)
 │   │       │   └── prisma.ts    # Prisma client singleton
 │   │       ├── app.ts           # Express app setup
 │   │       └── index.ts         # Local dev entry (dotenv + listen)
@@ -101,6 +106,9 @@ Ovo/
 | **ORM** | Prisma v6 | Type-safe queries, auto-generated client, declarative schema migrations |
 | **Auth** | JWT + bcrypt | Stateless access tokens (15min) + rotating refresh tokens (7 days) |
 | **Validation** | Zod | Runtime validation with TypeScript type inference; shared between client and server |
+| **AI / LLM** | LangChain + Groq (`llama-3.3-70b-versatile`) | Provider-agnostic LLM abstraction; Groq chosen for generous free tier |
+| **AI Rate Limiting** | `express-rate-limit` | Per-user rate limiting on AI endpoints (20 req/user/hour, configurable) |
+| **Push Notifications** | `expo-notifications` | Local scheduled notifications for daily AI summary (no Firebase/APNs) |
 | **Monorepo** | pnpm workspaces + Turborepo | Fast installs via content-addressable store; task caching and parallel execution |
 | **Deployment** | Vercel (backend), Netlify (web), GitHub Actions (APK) | Zero-config serverless for Express; static hosting for Vue SPA; automated APK builds with release artifacts |
 
@@ -122,7 +130,7 @@ Client Request
              │
              ▼
 ┌─────────────────────────┐
-│  Router                  │  Route matching (/api/auth, /api/tasks, /api/user)
+│  Router                  │  Route matching (/api/auth, /api/tasks, /api/user, /api/ai)
 └────────────┬────────────┘
              │
              ▼
@@ -320,3 +328,60 @@ Ovo supports "Sign in with Event Horizon" — an OAuth2 Authorization Code flow 
 Users who sign in via Event Horizon have their `authProvider` field set to `"eventhorizon"` and have no password (the `passwordHash` column is nullable).
 
 For the full flow diagram, architecture decisions, env vars, and client implementations, see [Event Horizon OAuth](./event-horizon-oauth.md).
+
+## AI Daily Summary
+
+Ovo includes an LLM-powered daily summary feature that tells users their top 3 focus tasks with reasons and encouragement.
+
+### How It Works
+
+```
+User opens app / AI assistant calls tool
+    │
+    ▼
+┌─────────────────────────────────────────────┐
+│  GET /api/ai/daily-summary                   │
+│  authenticate() + aiRateLimit()              │
+└────────────────┬────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────┐
+│  AI Service: getDailySummary(userId)         │
+│  1. Check DailySummaryCache for today        │
+│     (userId + YYYY-MM-DD unique key)         │
+│  2. If cached → return parsed JSON           │
+│  3. If not cached:                           │
+│     a. Fetch incomplete tasks from DB        │
+│     b. Format as prompt for LLM              │
+│     c. Call chain.invoke() with structured   │
+│        output (Zod schema)                   │
+│     d. Cache result in DailySummaryCache     │
+│     e. Best-effort cleanup of old entries    │
+│     f. Return DailySummary                   │
+└─────────────────────────────────────────────┘
+```
+
+### Key Design Decisions
+
+1. **One LLM call per user per day** — Results are cached in the `DailySummaryCache` table (not in-memory, because Vercel serverless is stateless). The cache key is `userId + date (YYYY-MM-DD)`.
+
+2. **Graceful degradation** — If `GROQ_API_KEY` is not set, the endpoint returns 503 and all frontends silently hide the summary card.
+
+3. **Provider abstraction** — `lib/llm.ts` uses LangChain's `BaseChatModel` interface. Currently wired to Groq, but swapping to OpenAI/Anthropic requires only changing the import and env var.
+
+4. **Rate limiting** — Per-user, 20 requests/hour (configurable via `AI_RATE_LIMIT_MAX`, `AI_RATE_LIMIT_WINDOW_MS`). Keyed by `userId`, not IP address.
+
+5. **Notification time stored server-side** — `notificationHour` and `notificationMinute` columns on the `User` model, so the MCP server and all clients can read/write it. Mobile also caches locally in SecureStore for offline access.
+
+6. **Local notifications** — Mobile uses `expo-notifications` scheduled daily notifications (not Firebase/APNs push). On app open, it fetches the summary and schedules a notification for the next morning at the user's configured time.
+
+### LLM Configuration
+
+| Env Variable | Default | Description |
+|-------------|---------|-------------|
+| `AI_PROVIDER` | `groq` | LLM provider (`groq`, extensible) |
+| `AI_MODEL` | `llama-3.3-70b-versatile` | Model name |
+| `GROQ_API_KEY` | — | API key for the LLM provider |
+| `AI_RATE_LIMIT_ENABLED` | `true` | Enable/disable rate limiting |
+| `AI_RATE_LIMIT_MAX` | `20` | Max requests per window per user |
+| `AI_RATE_LIMIT_WINDOW_MS` | `3600000` | Rate limit window (1 hour) |

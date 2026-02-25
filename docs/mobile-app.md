@@ -8,9 +8,9 @@ The Ovo mobile app is built with **Expo SDK 54** and **React Native**, using **r
 |--------|-------|:----:|-------------|
 | Login | `/(auth)/login` | No | Email + password sign-in with client-side Zod validation. Also has a "Sign in with Event Horizon" button for Community SSO. |
 | Register | `/(auth)/register` | No | Name + email + password registration with password requirements hint |
-| Home | `/(app)/home` | Yes | Dashboard with progress card, task list, status filters, search, infinite scroll |
-| Task | `/(app)/task` | Yes | Dual-purpose create/edit form (edit mode when `?id=` param is present) |
-| Profile | `/(app)/profile` | Yes | User info, member since date, app version, sign-out button |
+| Home | `/(app)/home` | Yes | Dashboard with AI daily summary card, progress card, task list, status filters, search, infinite scroll |
+| Task | `/(app)/task` | Yes | Dual-purpose create/edit task form (edit mode when `?id=` param is present) |
+| Profile | `/(app)/profile` | Yes | User info, notification settings (enable/disable + time picker), API keys, member since date, app version, sign-out button |
 
 ## Navigation Structure
 
@@ -183,6 +183,33 @@ This ensures that concurrent requests don't trigger multiple refresh calls.
 **`services/auth.ts`** — `register()`, `login()`, `logout()`, `getProfile()`
 
 **`services/tasks.ts`** — `getTasks(filters)`, `getTask(id)`, `createTask(input)`, `updateTask(id, input)`, `deleteTask(id)`, `getStats()`
+
+**`services/ai.ts`** — `fetchDailySummary()` — fetches the AI daily summary from `GET /api/ai/daily-summary`
+
+**`services/user.ts`** — `getNotificationTime()`, `updateNotificationTime(hour, minute)` — read/write notification time settings via the backend API
+
+### Notifications Hook (`hooks/useNotifications.ts`)
+
+The `useNotifications()` hook manages the full push notification lifecycle for daily AI summaries:
+
+| Function | Description |
+|----------|-------------|
+| `getNotificationTime()` | Read cached notification time from SecureStore |
+| `setNotificationTime(h, m)` | Write notification time to SecureStore |
+| `getNotificationsEnabled()` | Read enabled flag from SecureStore |
+| `setNotificationsEnabled(v)` | Write enabled flag to SecureStore |
+| `ensurePermissions()` | Request notification permissions + set up Android channel `"daily-summary"` |
+| `scheduleDailySummary()` | Sync time from backend (best-effort, falls back to local), cancel all existing, fetch summary, schedule daily notification |
+| `useNotifications()` | Hook that runs `scheduleDailySummary()` on mount; returns `{ reschedule }` |
+
+The hook is wired in `app/(app)/_layout.tsx` so notifications initialize after authentication. On app open, it:
+
+1. Syncs notification time from the backend (falls back to local cache if offline)
+2. Cancels all existing scheduled notifications
+3. Fetches the current daily summary from the API
+4. Schedules a daily notification at the user's configured time using `SchedulableTriggerInputTypes.DAILY`
+
+Notifications are **local** (scheduled via `expo-notifications`), not remote push. No Firebase or APNs infrastructure is needed.
 
 ### Event Horizon OAuth (Mobile)
 

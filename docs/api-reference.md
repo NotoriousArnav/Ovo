@@ -1,6 +1,6 @@
 # API Reference
 
-Complete reference for the Ovo REST API. All endpoints are prefixed with `/api`.
+Complete reference for the Ovo REST API. All endpoints are prefixed with `/api`. There are 20 endpoints total.
 
 **Base URLs:**
 
@@ -706,6 +706,139 @@ curl https://ovo-backend.vercel.app/api/user/profile \
 
 ---
 
+### `GET /api/user/notification-time`
+
+Get the authenticated user's notification time settings (hour and minute for daily AI summary notifications).
+
+**Response** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "notificationHour": 9,
+    "notificationMinute": 0
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Condition | Body |
+|--------|-----------|------|
+| 401 | Missing/invalid token | `{ "success": false, "message": "Authentication required" }` |
+| 404 | User not found | `{ "success": false, "message": "User not found" }` |
+
+**curl**
+
+```bash
+curl https://ovo-backend.vercel.app/api/user/notification-time \
+  -H "Authorization: Bearer <accessToken>"
+```
+
+---
+
+### `PUT /api/user/notification-time`
+
+Update the authenticated user's notification time. Used by mobile and MCP clients to configure when the daily summary notification fires.
+
+**Request Body**
+
+| Field | Type | Required | Constraints |
+|-------|------|----------|-------------|
+| `hour` | integer | Yes | 0-23 |
+| `minute` | integer | Yes | 0-59 |
+
+**Response** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "notificationHour": 8,
+    "notificationMinute": 30
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Condition | Body |
+|--------|-----------|------|
+| 400 | Validation failed | `{ "success": false, "message": "Validation failed", "errors": { "hour": ["Expected number, received string"] } }` |
+| 401 | Missing/invalid token | `{ "success": false, "message": "Authentication required" }` |
+
+**curl**
+
+```bash
+curl -X PUT https://ovo-backend.vercel.app/api/user/notification-time \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <accessToken>" \
+  -d '{
+    "hour": 8,
+    "minute": 30
+  }'
+```
+
+---
+
+## AI
+
+All AI endpoints require authentication. The AI feature requires the `GROQ_API_KEY` environment variable to be set on the backend — if not configured, the endpoint returns 503 and clients should silently hide AI features.
+
+### `GET /api/ai/daily-summary`
+
+Get an AI-generated daily summary with your top 3 focus tasks, reasons, and encouragement. Results are **cached for one calendar day** per user — the first call triggers an LLM request, subsequent calls return the cached result.
+
+Rate limited to 20 requests per user per hour (configurable via `AI_RATE_LIMIT_MAX` and `AI_RATE_LIMIT_WINDOW_MS` env vars).
+
+**Response** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "summary": "You have 5 tasks in flight. Focus on these 3 to make the most impact today:",
+    "focusTasks": [
+      {
+        "id": "cm5task001",
+        "title": "Write API documentation",
+        "reason": "This is high priority and due tomorrow — knocking it out first frees up your afternoon."
+      },
+      {
+        "id": "cm5task002",
+        "title": "Review pull requests",
+        "reason": "Two PRs have been waiting since Monday. Quick wins that unblock your teammates."
+      },
+      {
+        "id": "cm5task003",
+        "title": "Fix login bug",
+        "reason": "High priority and already in progress — you're close to finishing this one."
+      }
+    ],
+    "encouragement": "You've been making solid progress. Three focused tasks today and you'll be in great shape for the week.",
+    "generatedAt": "2025-02-25T09:00:00.000Z"
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Condition | Body |
+|--------|-----------|------|
+| 401 | Missing/invalid token | `{ "success": false, "message": "Authentication required" }` |
+| 429 | Rate limit exceeded | `{ "success": false, "message": "Too many requests. Try again later." }` |
+| 503 | AI not configured (`GROQ_API_KEY` not set) | `{ "success": false, "message": "AI features are not configured" }` |
+
+**curl**
+
+```bash
+curl https://ovo-backend.vercel.app/api/ai/daily-summary \
+  -H "Authorization: Bearer <accessToken>"
+```
+
+---
+
 ## API Keys
 
 API keys provide long-lived authentication for programmatic access (e.g. the Ovo MCP server). All API key endpoints require JWT authentication — you can't use an API key to manage API keys.
@@ -886,6 +1019,9 @@ curl -s -X POST https://ovo-backend.vercel.app/api/auth/logout \
 | `PUT` | `/api/tasks/:id` | Yes | Update task |
 | `DELETE` | `/api/tasks/:id` | Yes | Delete task |
 | `GET` | `/api/user/profile` | Yes | Get user profile |
+| `GET` | `/api/user/notification-time` | Yes | Get notification time settings |
+| `PUT` | `/api/user/notification-time` | Yes | Update notification time |
+| `GET` | `/api/ai/daily-summary` | Yes | AI daily summary (cached, rate limited) |
 | `POST` | `/api/keys` | Yes | Create API key |
 | `GET` | `/api/keys` | Yes | List API keys |
 | `DELETE` | `/api/keys/:id` | Yes | Revoke API key |

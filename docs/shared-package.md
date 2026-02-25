@@ -31,6 +31,9 @@ packages/shared/
 | `RegisterResponse` | `{ user, tokens }` |
 | `TaskFilters` | Query parameters for task listing |
 | `TaskStats` | Task statistics (`total`, `pending`, `inProgress`, `completed`, `completionRate`) |
+| `NotificationSettings` | `{ hour, minute }` — user's daily notification time |
+| `DailySummaryFocusTask` | `{ id, title, reason }` — a single focus task from the AI summary |
+| `DailySummary` | `{ summary, focusTasks, encouragement, generatedAt }` — full AI daily summary |
 
 ### Validation Schemas (`validation.ts`)
 
@@ -43,8 +46,11 @@ packages/shared/
 | `updateTaskSchema` | Backend, Mobile | Validates task update input |
 | `taskFiltersSchema` | Backend | Validates and coerces query parameters for task listing |
 | `ehLoginRedirectSchema` | Backend | Validates the `redirect_uri` query param for Event Horizon OAuth login |
+| `dailySummaryFocusTaskSchema` | Backend (AI service) | Schema for a single focus task in the AI summary |
+| `dailySummaryResponseSchema` | Backend (AI service, LLM structured output) | Schema for the full AI daily summary response |
+| `notificationSettingsSchema` | Backend (user controller) | Validates notification time update requests (`hour`, `minute`) |
 
-Each schema also exports an inferred TypeScript type (e.g., `RegisterInput`, `CreateTaskInput`, `EHLoginRedirectInput`).
+Each schema also exports an inferred TypeScript type (e.g., `RegisterInput`, `CreateTaskInput`, `EHLoginRedirectInput`, `NotificationSettingsInput`).
 
 ### Package Configuration
 

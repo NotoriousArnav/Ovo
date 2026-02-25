@@ -182,7 +182,7 @@ If you want hot-reload during development instead of running the compiled output
 
 ## Tools
 
-The MCP server exposes 6 tools that AI assistants can call:
+The MCP server exposes 9 tools that AI assistants can call:
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
@@ -192,6 +192,9 @@ The MCP server exposes 6 tools that AI assistants can call:
 | `update_task` | Update an existing task (partial) | `taskId`, `title?`, `description?`, `status?`, `priority?`, `dueDate?` |
 | `delete_task` | Permanently delete a task | `taskId` |
 | `get_stats` | Get task completion statistics | *(none)* |
+| `get_daily_summary` | Get AI-generated daily focus tasks with reasons and encouragement | *(none)* |
+| `get_notification_time` | Get current notification time setting | *(none)* |
+| `set_notification_time` | Set daily notification time | `hour`, `minute` |
 
 ### Example Prompts
 
@@ -202,10 +205,13 @@ Once connected, you can ask your AI assistant things like:
 - "Mark task cm5abc123 as completed"
 - "What are my task stats?"
 - "Delete the task about fixing the login bug"
+- "What should I focus on today?" (triggers AI daily summary)
+- "What time are my daily notifications set for?"
+- "Set my notification time to 8:30 AM"
 
 ## Resources
 
-The server also exposes 4 MCP resources that clients can read directly:
+The server also exposes 5 MCP resources that clients can read directly:
 
 | URI | Description | Format |
 |-----|-------------|--------|
@@ -213,6 +219,7 @@ The server also exposes 4 MCP resources that clients can read directly:
 | `ovo://tasks/{taskId}` | Single task detail | Plain text |
 | `ovo://stats` | Task completion statistics | JSON |
 | `ovo://profile` | Your user profile | JSON |
+| `ovo://daily-summary` | AI-generated daily focus summary | JSON |
 
 Resources are read-only views of your data. Clients that support resource browsing (like Claude Desktop) will show these in their resource panel.
 

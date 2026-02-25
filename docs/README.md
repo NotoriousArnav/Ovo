@@ -1,6 +1,6 @@
 # Ovo Documentation
 
-> **Ovo** is a simple, self-hosted task management application built for the [BroCode Tech](https://brocode-tech.netlify.app/) community, with a Vue 3 web app, native Android client, and Express.js REST API.
+> **Ovo** is a simple, self-hosted task management application with AI-powered daily summaries, built for the [BroCode Tech](https://brocode-tech.netlify.app/) community, with a Vue 3 web app, native Android client, and Express.js REST API.
 
 ## Quick Links
 
@@ -18,9 +18,9 @@
 
 2. **[Architecture](./architecture.md)** — Monorepo layout, tech stack rationale, request lifecycle, authentication flow, state management.
 
-3. **[API Reference](./api-reference.md)** — All 17 REST endpoints with request/response schemas, validation rules, and copy-pasteable curl examples.
+3. **[API Reference](./api-reference.md)** — All 20 REST endpoints with request/response schemas, validation rules, and copy-pasteable curl examples.
 
-4. **[Mobile App](./mobile-app.md)** — Screens, navigation structure, Material You theming, Zustand stores, API service layer, building the APK.
+4. **[Mobile App](./mobile-app.md)** — Screens, navigation structure, Material You theming, Zustand stores, API service layer, push notifications, building the APK.
 
 5. **[Deployment](./deployment.md)** — Backend on Vercel, GitHub Actions CI/CD workflows, APK signing with keystores, environment configuration.
 
@@ -30,7 +30,7 @@
 
 8. **[Event Horizon OAuth](./event-horizon-oauth.md)** — Community SSO via OAuth2 + PKCE, environment setup, flow walkthrough, client implementations, and gotchas.
 
-9. **[MCP Server](./mcp-server.md)** — Expose your Ovo tasks to AI assistants via Model Context Protocol. Setup, tools & resources reference, client configs for Claude/Cursor/OpenCode.
+9. **[MCP Server](./mcp-server.md)** — Expose your Ovo tasks to AI assistants via Model Context Protocol. Setup, tools & resources reference (including AI daily summary), client configs for Claude/Cursor/OpenCode.
 
 ## Project Structure
 
