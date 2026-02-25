@@ -93,35 +93,40 @@ pnpm dev:backend   # Express API on http://localhost:3001
 pnpm dev:app       # Expo dev server
 ```
 
-## API Documentation
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Getting Started](docs/getting-started.md) | Prerequisites, installation, environment setup |
+| [Architecture](docs/architecture.md) | Directory structure, tech stack rationale, auth & request flow diagrams |
+| [API Reference](docs/api-reference.md) | All 12 endpoints with request/response schemas and curl examples |
+| [Mobile App](docs/mobile-app.md) | Screens, navigation, theming, stores, APK building |
+| [Deployment](docs/deployment.md) | Vercel config, CI/CD pipelines, APK signing |
+| [Shared Package](docs/shared-package.md) | Workspace linking, Vercel workaround, types & schemas |
+
+### Live API Docs
+
+- **Swagger UI**: [https://ovo-backend.vercel.app/api/docs](https://ovo-backend.vercel.app/api/docs)
+- **OpenAPI JSON**: [https://ovo-backend.vercel.app/api/docs.json](https://ovo-backend.vercel.app/api/docs.json)
+
+### Quick API Overview
 
 Base URL: `/api`
 
-### Authentication
-
-| Method | Endpoint | Body | Description |
+| Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/auth/register` | `{ name, email, password }` | Register new user |
-| POST | `/auth/login` | `{ email, password }` | Login, returns JWT tokens |
-| POST | `/auth/refresh` | `{ refreshToken }` | Refresh access token |
-| POST | `/auth/logout` | `{ refreshToken }` | Invalidate refresh token |
-
-### Tasks (requires `Authorization: Bearer <token>`)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/tasks` | List tasks (supports `?status`, `?priority`, `?search`, `?page`, `?limit`, `?sortBy`, `?sortOrder`) |
-| GET | `/tasks/stats` | Get task completion statistics |
-| GET | `/tasks/:id` | Get single task |
-| POST | `/tasks` | Create task (`{ title, description?, status?, priority?, dueDate? }`) |
-| PUT | `/tasks/:id` | Update task (partial update) |
-| DELETE | `/tasks/:id` | Delete task |
-
-### User
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/user/profile` | Get authenticated user's profile |
+| GET | `/health` | No | Health check |
+| POST | `/auth/register` | No | Register new user |
+| POST | `/auth/login` | No | Login, returns JWT tokens |
+| POST | `/auth/refresh` | No | Refresh access token |
+| POST | `/auth/logout` | No | Invalidate refresh token |
+| GET | `/tasks` | Yes | List tasks (filtered, paginated, sorted) |
+| GET | `/tasks/stats` | Yes | Task completion statistics |
+| GET | `/tasks/:id` | Yes | Get single task |
+| POST | `/tasks` | Yes | Create task |
+| PUT | `/tasks/:id` | Yes | Update task (partial) |
+| DELETE | `/tasks/:id` | Yes | Delete task |
+| GET | `/user/profile` | Yes | Get user profile |
 
 All responses follow the format:
 ```json
