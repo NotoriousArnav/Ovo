@@ -7,8 +7,10 @@
   "scripts": {
     "dev": "turbo dev",
     "dev:app": "turbo dev --filter=@ovo/mobile",
+    "dev:web": "turbo dev --filter=@ovo/web",
     "dev:backend": "turbo dev --filter=@ovo/backend",
     "build": "turbo build",
+    "build:web": "turbo build --filter=@ovo/web",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
