@@ -41,3 +41,6 @@ yarn-error.log*
 # Keystore
 *.keystore
 *.jks
+
+# Local build scripts
+build-apk.sh

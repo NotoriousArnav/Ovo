@@ -1,5 +1,5 @@
 # Ovo — Build Android APK
-# Builds APK on push to main using expo prebuild + Gradle
+# Builds a release APK on every push to main and uploads as artifact
 # SPDX-License-Identifier: GPL-3.0
 
 name: Build APK
@@ -7,11 +7,10 @@ name: Build APK
 on:
   push:
     branches: [main]
-    paths:
-      - "apps/mobile/**"
-      - "packages/shared/**"
-      - ".github/workflows/build-apk.yml"
   workflow_dispatch:
+
+env:
+  EXPO_PUBLIC_API_URL: https://ovo-backend.vercel.app
 
 jobs:
   build:
@@ -43,23 +42,22 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: .
 
+      - name: Write .env
+        run: echo "EXPO_PUBLIC_API_URL=${{ env.EXPO_PUBLIC_API_URL }}" > .env
+
       - name: Expo prebuild
         run: npx expo prebuild --platform android --clean
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      # ── Signing (optional — remove this block for debug builds) ──
+      # ── Signing (optional — configure secrets for signed builds) ──
       - name: Decode keystore
-        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/upload.keystore
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload.keystore
 
       - name: Configure signing
-        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         run: |
           cat >> android/gradle.properties <<EOF
           MYAPP_UPLOAD_STORE_FILE=upload.keystore
