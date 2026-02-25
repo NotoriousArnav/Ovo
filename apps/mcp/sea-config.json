@@ -1,0 +1,6 @@
+{
+  "main": "dist/ovo-mcp.cjs",
+  "output": "dist/ovo-mcp.blob",
+  "disableExperimentalSEAWarning": true,
+  "useCodeCache": false
+}

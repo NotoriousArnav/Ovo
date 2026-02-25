@@ -6,9 +6,9 @@ It talks to the Ovo backend over HTTP using an API key for authentication — no
 
 ## Prerequisites
 
-- **Node.js >= 20** and **pnpm >= 9** (you already have these if you're running the monorepo)
 - An **Ovo account** with at least one API key
 - The backend running (locally or the production instance at `https://ovo-backend.vercel.app`)
+- **Either:** a prebuilt binary (no Node.js needed), **or** Node.js >= 20 and pnpm >= 9 to build from source
 
 ## Setup
 
@@ -29,13 +29,36 @@ curl -X POST https://ovo-backend.vercel.app/api/keys \
 
 The response includes the raw key (starts with `ovo_k_`). **Copy it immediately** — it's shown once and never again.
 
-### 2. Build the MCP Server
+### 2. Get the MCP Server Binary
+
+You have two options:
+
+#### Option A: Download a prebuilt binary (no Node.js required)
+
+Grab the latest binary for your platform from [GitHub Releases](https://github.com/NotoriousArnav/Ovo/releases):
+
+| Platform | File |
+|----------|------|
+| Linux x64 | `ovo-mcp-linux-x64-<hash>` |
+| Linux arm64 | `ovo-mcp-linux-arm64-<hash>` |
+| macOS Apple Silicon | `ovo-mcp-darwin-arm64-<hash>` |
+| macOS Intel | `ovo-mcp-darwin-x64-<hash>` |
+| Windows x64 | `ovo-mcp-win-x64-<hash>.exe` |
+| Windows arm64 | `ovo-mcp-win-arm64-<hash>.exe` |
+
+On Linux/macOS, make it executable after downloading:
+
+```bash
+chmod +x ovo-mcp-linux-x64-*
+```
+
+#### Option B: Build from source
 
 ```bash
 pnpm --filter @ovo/mcp build
 ```
 
-This compiles TypeScript to `apps/mcp/dist/`.
+This compiles TypeScript to `apps/mcp/dist/`. You'll need Node.js to run it.
 
 ### 3. Configure Your MCP Client
 
@@ -44,6 +67,24 @@ The server uses **stdio transport** — your MCP client spawns it as a subproces
 #### Claude Desktop
 
 Add this to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
+
+**Using the prebuilt binary:**
+
+```json
+{
+  "mcpServers": {
+    "ovo": {
+      "command": "/path/to/ovo-mcp-darwin-arm64-abc1234",
+      "env": {
+        "OVO_API_URL": "https://ovo-backend.vercel.app",
+        "OVO_ACCESS_TOKEN": "ovo_k_your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+**Using Node.js (built from source):**
 
 ```json
 {
@@ -63,6 +104,24 @@ Add this to your Claude Desktop config (`~/Library/Application Support/Claude/cl
 #### Cursor
 
 Add to your Cursor MCP settings (`.cursor/mcp.json` in your project root, or the global config):
+
+**Using the prebuilt binary:**
+
+```json
+{
+  "mcpServers": {
+    "ovo": {
+      "command": "/path/to/ovo-mcp-linux-x64-abc1234",
+      "env": {
+        "OVO_API_URL": "https://ovo-backend.vercel.app",
+        "OVO_ACCESS_TOKEN": "ovo_k_your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+**Using Node.js (built from source):**
 
 ```json
 {

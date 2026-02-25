@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "build:bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --target=node20 --outfile=dist/ovo-mcp.cjs",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist node_modules"
@@ -17,6 +18,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "esbuild": "^0.27.3",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   }
