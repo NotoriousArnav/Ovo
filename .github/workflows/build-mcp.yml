@@ -8,9 +8,6 @@ name: Build MCP Binaries
 on:
   push:
     branches: [main]
-    paths:
-      - "apps/mcp/**"
-      - ".github/workflows/build-mcp.yml"
   workflow_dispatch:
 
 jobs:
