@@ -35,14 +35,15 @@ const swaggerDocument: JsonObject = {
     { name: "Auth", description: "Authentication and token management" },
     { name: "Tasks", description: "Task CRUD and statistics" },
     { name: "User", description: "User profile" },
+    { name: "API Keys", description: "API key management for MCP and programmatic access" },
   ],
   components: {
     securitySchemes: {
       bearerAuth: {
         type: "http",
         scheme: "bearer",
-        bearerFormat: "JWT",
-        description: "JWT access token (15-minute expiry)",
+        bearerFormat: "JWT or API Key",
+        description: "JWT access token (15-minute expiry) or API key (ovo_k_ prefix, no expiry)",
       },
     },
     schemas: {
@@ -163,6 +164,29 @@ const swaggerDocument: JsonObject = {
           },
         },
         required: ["success", "message", "errors"],
+      },
+      ApiKey: {
+        type: "object",
+        properties: {
+          id: { type: "string", example: "cm5key001" },
+          name: { type: "string", example: "MCP Server" },
+          keyPrefix: { type: "string", example: "ovo_k_a1b2c3" },
+          lastUsedAt: { type: "string", format: "date-time", nullable: true, example: "2026-02-25T10:00:00.000Z" },
+          createdAt: { type: "string", format: "date-time", example: "2026-02-20T12:00:00.000Z" },
+        },
+        required: ["id", "name", "keyPrefix", "createdAt"],
+      },
+      ApiKeyCreated: {
+        type: "object",
+        description: "Returned only once on creation — the raw key is never stored or retrievable again.",
+        properties: {
+          id: { type: "string", example: "cm5key001" },
+          name: { type: "string", example: "MCP Server" },
+          keyPrefix: { type: "string", example: "ovo_k_a1b2c3" },
+          createdAt: { type: "string", format: "date-time", example: "2026-02-20T12:00:00.000Z" },
+          key: { type: "string", example: "ovo_k_a1b2c3d4e5f6..." },
+        },
+        required: ["id", "name", "keyPrefix", "createdAt", "key"],
       },
     },
   },
@@ -980,6 +1004,153 @@ const swaggerDocument: JsonObject = {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ApiError" },
                 example: { success: false, message: "User not found" },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    // ── API Keys: List / Create ──
+    "/api/keys": {
+      get: {
+        tags: ["API Keys"],
+        summary: "List API keys",
+        description: "Returns all API keys for the authenticated user. Only metadata is returned — the raw key is never stored.",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": {
+            description: "API key list",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/ApiKey" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Authentication required",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["API Keys"],
+        summary: "Create an API key",
+        description: "Creates a new API key. The raw key is returned ONCE in the response — store it securely. Maximum 10 keys per user.",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  name: {
+                    type: "string",
+                    minLength: 1,
+                    maxLength: 50,
+                    example: "MCP Server",
+                    description: "A friendly name for this API key (1-50 characters)",
+                  },
+                },
+                required: ["name"],
+              },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "API key created — raw key included (shown only once)",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: { $ref: "#/components/schemas/ApiKeyCreated" },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Validation failed or key limit reached",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+          "401": {
+            description: "Authentication required",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    // ── API Keys: Revoke ──
+    "/api/keys/{id}": {
+      delete: {
+        tags: ["API Keys"],
+        summary: "Revoke an API key",
+        description: "Permanently deletes an API key. The key will immediately stop working.",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "API key CUID",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "API key revoked",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string", example: "API key revoked" },
+                  },
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Authentication required",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+          "404": {
+            description: "API key not found",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+                example: { success: false, message: "API key not found" },
               },
             },
           },

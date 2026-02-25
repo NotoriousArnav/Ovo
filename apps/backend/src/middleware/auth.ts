@@ -4,12 +4,15 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { AppError } from "./errorHandler";
+import { validateApiKey } from "../services/apiKeys";
 
 export interface AuthRequest extends Request {
   userId?: string;
 }
 
-export const authenticate = (
+const API_KEY_PREFIX = "ovo_k_";
+
+export const authenticate = async (
   req: AuthRequest,
   _res: Response,
   next: NextFunction
@@ -22,6 +25,18 @@ export const authenticate = (
     }
 
     const token = authHeader.split(" ")[1];
+
+    // ── API Key auth ──────────────────────────────────
+    if (token.startsWith(API_KEY_PREFIX)) {
+      const userId = await validateApiKey(token);
+      if (!userId) {
+        throw new AppError("Invalid API key", 401);
+      }
+      req.userId = userId;
+      return next();
+    }
+
+    // ── JWT auth ──────────────────────────────────────
     const secret = process.env.JWT_ACCESS_SECRET;
 
     if (!secret) {

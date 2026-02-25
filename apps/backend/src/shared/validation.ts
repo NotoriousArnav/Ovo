@@ -84,6 +84,17 @@ export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 export type TaskFiltersInput = z.infer<typeof taskFiltersSchema>;
 
+// ─── API Key Schemas ─────────────────────────────────
+export const createApiKeySchema = z.object({
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(50, "Name must be at most 50 characters")
+    .trim(),
+});
+
+export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;
+
 // ─── Event Horizon OAuth ─────────────────────────────
 export const ehLoginRedirectSchema = z.object({
   redirect_uri: z.string().url("Invalid redirect URI"),
