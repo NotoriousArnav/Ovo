@@ -16,6 +16,7 @@ const isLoggedIn = computed(() => !!getAccessToken());
       <div class="landing-nav-inner">
         <span class="landing-brand">Ovo</span>
         <nav class="landing-nav-links">
+          <a href="https://brocode-tech.netlify.app/" target="_blank" rel="noopener" class="nav-link">BroCode</a>
           <RouterLink to="/docs" class="nav-link">Docs</RouterLink>
           <a href="https://github.com/NotoriousArnav/Ovo" target="_blank" rel="noopener" class="nav-link">GitHub</a>
           <template v-if="isLoggedIn">
@@ -34,6 +35,7 @@ const isLoggedIn = computed(() => !!getAccessToken());
       <h1 class="hero-title">Ovo</h1>
       <p class="hero-tagline">A Simple Self-Hosted Task Management Application</p>
       <p class="hero-desc">
+        Built for the <a href="https://brocode-tech.netlify.app/" target="_blank" rel="noopener">BroCode Tech</a> community.
         Organize your tasks across web and mobile with a clean Material&nbsp;You interface.
         Self-host on your own infrastructure — your data stays yours.
       </p>
@@ -73,6 +75,19 @@ const isLoggedIn = computed(() => !!getAccessToken());
       </div>
     </section>
 
+    <!-- ─── Community ───────────────────────────────── -->
+    <section class="community">
+      <h2 class="community-title">Built for BroCode Tech</h2>
+      <p class="community-desc">
+        Ovo is made for and by the BroCode Tech community — an open community for developers,
+        builders, and learners. Join us at events, contribute to projects, and grow together.
+      </p>
+      <div class="community-links">
+        <a href="https://brocode-tech.netlify.app/" target="_blank" rel="noopener" class="btn btn-secondary">Community Website</a>
+        <a href="https://events.neopanda.tech" target="_blank" rel="noopener" class="btn btn-secondary">Events</a>
+      </div>
+    </section>
+
     <!-- ─── Tech Strip ──────────────────────────────── -->
     <section class="tech-strip">
       <span class="tech-label">Built with</span>
@@ -89,13 +104,17 @@ const isLoggedIn = computed(() => !!getAccessToken());
     <!-- ─── Footer ──────────────────────────────────── -->
     <footer class="landing-footer">
       <p>
+        <a href="https://brocode-tech.netlify.app/" target="_blank" rel="noopener">BroCode Tech</a>
+        <span class="sep">&middot;</span>
+        <a href="https://events.neopanda.tech" target="_blank" rel="noopener">Events</a>
+        <span class="sep">&middot;</span>
         <a href="https://github.com/NotoriousArnav/Ovo" target="_blank" rel="noopener">GitHub</a>
         <span class="sep">&middot;</span>
         <RouterLink to="/docs">Documentation</RouterLink>
         <span class="sep">&middot;</span>
         <a href="https://ovo-backend.vercel.app/api/docs" target="_blank" rel="noopener">API Docs</a>
       </p>
-      <p class="text-xs text-muted">GPL-3.0 &copy; {{ new Date().getFullYear() }} Ovo</p>
+      <p class="text-xs text-muted">GPL-3.0 &copy; {{ new Date().getFullYear() }} Ovo &mdash; A BroCode Tech Project</p>
     </footer>
   </div>
 </template>
@@ -233,6 +252,39 @@ const isLoggedIn = computed(() => !!getAccessToken());
   font-size: 0.875rem;
   color: var(--md-on-surface-variant);
   line-height: 1.5;
+}
+
+/* ─── Community ────────────────────────────────────── */
+.community {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 20px 64px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.community-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--md-on-surface);
+}
+
+.community-desc {
+  font-size: 0.9375rem;
+  color: var(--md-on-surface-variant);
+  line-height: 1.6;
+  max-width: 540px;
+}
+
+.community-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
 }
 
 /* ─── Tech strip ───────────────────────────────────── */

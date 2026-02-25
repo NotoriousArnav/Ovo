@@ -1,6 +1,6 @@
 # Ovo Documentation
 
-> **Ovo** is a simple, self-hosted task management application with a Vue 3 web app, native Android client, and Express.js REST API.
+> **Ovo** is a simple, self-hosted task management application built for the [BroCode Tech](https://brocode-tech.netlify.app/) community, with a Vue 3 web app, native Android client, and Express.js REST API.
 
 ## Quick Links
 

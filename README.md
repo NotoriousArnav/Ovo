@@ -2,7 +2,7 @@
 
 **A simple, self-hosted task management application.**
 
-Ovo is a full-stack task manager you deploy on your own infrastructure. It ships with a **Vue 3 web app**, a **native Android client** (Expo React Native), and an **Express.js REST API** — all sharing types and validation through a common package. Your data stays on your server, under your control.
+Ovo is a full-stack task manager you deploy on your own infrastructure. It ships with a **Vue 3 web app**, a **native Android client** (Expo React Native), and an **Express.js REST API** — all sharing types and validation through a common package. Your data stays on your server, under your control. Built for the [BroCode Tech](https://brocode-tech.netlify.app/) community.
 
 ## Highlights
 
@@ -10,6 +10,14 @@ Ovo is a full-stack task manager you deploy on your own infrastructure. It ships
 - **Cross-platform** — Vue 3 SPA for desktop/web, Android APK for mobile, both talking to the same API.
 - **Material Design 3** — Clean MD3 theming with automatic dark mode. On Android 12+, colors adapt to the device wallpaper.
 - **Open source** — GPL-3.0. Inspect, fork, and self-host freely.
+
+## Community
+
+Ovo is built for and by the [BroCode Tech](https://brocode-tech.netlify.app/) community — an open tech community for developers, builders, and learners.
+
+- **Community Website**: [brocode-tech.netlify.app](https://brocode-tech.netlify.app/)
+- **Events**: [events.neopanda.tech](https://events.neopanda.tech) — community events and meetups
+- **GitHub**: [github.com/NotoriousArnav/Ovo](https://github.com/NotoriousArnav/Ovo)
 
 ## Tech Stack
 
