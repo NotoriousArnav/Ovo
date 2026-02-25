@@ -135,16 +135,21 @@ jobs:
           if-no-files-found: error
 
       # ── GitHub Release (rolling — tagged by commit hash) ──
+      # Uses append_body so APK and MCP workflows don't overwrite each other
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.rename.outputs.short_sha }}
           name: Ovo (${{ steps.rename.outputs.short_sha }})
+          append_body: true
           body: |
             **Build from [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})**
 
+            ### Android APKs
             Architectures: `arm64-v8a` · `armeabi-v7a` · `x86_64` · `x86` · `universal`
 
             Download the APK matching your device architecture, or use `universal` if unsure.
+
+            ---
           files: apps/mobile/${{ steps.rename.outputs.apk_dir }}/*.apk
           generate_release_notes: true
