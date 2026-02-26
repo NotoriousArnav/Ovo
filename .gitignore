@@ -51,3 +51,6 @@ build-apk.sh
 # Vite build artifacts (generated from .ts sources)
 vite.config.js
 vite.config.d.ts
+
+# Vue/TS compiled artifacts in web app source tree
+apps/web/src/**/*.js
