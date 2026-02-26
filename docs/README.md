@@ -22,7 +22,7 @@
 
 4. **[Mobile App](./mobile-app.md)** — Screens, navigation structure, Material You theming, Zustand stores, API service layer, push notifications, building the APK.
 
-5. **[Deployment](./deployment.md)** — Backend on Vercel, GitHub Actions CI/CD workflows, APK signing with keystores, environment configuration.
+5. **[Deployment](./deployment.md)** — Backend on Vercel, Web App on Netlify, GitHub Actions CI/CD workflows, APK signing with keystores, MCP binary build pipeline, environment configuration.
 
 6. **[Shared Package](./shared-package.md)** — What `@ovo/shared` contains, how pnpm workspace linking works, the Vercel serverless fix, and the current state of shared code.
 

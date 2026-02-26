@@ -9,6 +9,8 @@ Complete reference for the Ovo REST API. All endpoints are prefixed with `/api`.
 | Production | `https://ovo-backend.vercel.app` |
 | Development | `http://localhost:3001` |
 
+> **Interactive API explorer:** The backend serves a [Swagger UI](https://ovo-backend.vercel.app/api/docs) at `/api/docs` with all endpoints, schemas, and a "Try it out" button. The raw [OpenAPI JSON](https://ovo-backend.vercel.app/api/docs.json) is at `/api/docs.json`.
+
 ## Authentication
 
 Protected endpoints require a Bearer token in the `Authorization` header:
@@ -792,6 +794,16 @@ Get an AI-generated daily summary with your top 3 focus tasks, reasons, and enco
 
 Rate limited to 20 requests per user per hour (configurable via `AI_RATE_LIMIT_MAX` and `AI_RATE_LIMIT_WINDOW_MS` env vars).
 
+**Rate limit headers** (included on every AI endpoint response):
+
+| Header | Description | Example |
+|--------|-------------|---------|
+| `RateLimit-Limit` | Max requests allowed per window | `20` |
+| `RateLimit-Remaining` | Requests remaining in current window | `17` |
+| `RateLimit-Reset` | Seconds until the window resets | `3420` |
+
+These follow the [IETF RateLimit header fields](https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/) standard (`standardHeaders: true` in express-rate-limit).
+
 **Response** `200 OK`
 
 ```json
@@ -997,6 +1009,48 @@ curl -s https://ovo-backend.vercel.app/api/tasks/stats \
 curl -s -X POST https://ovo-backend.vercel.app/api/auth/logout \
   -H "Content-Type: application/json" \
   -d "{\"refreshToken\": \"$REFRESH_TOKEN\"}" | jq .
+```
+
+### JavaScript (`fetch`)
+
+The same flow using browser/Node.js `fetch()`:
+
+```javascript
+const API = "https://ovo-backend.vercel.app/api";
+
+// 1. Register
+const res = await fetch(`${API}/auth/register`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    name: "Test User",
+    email: "test@example.com",
+    password: "MyPassword123",
+  }),
+});
+const { data } = await res.json();
+const accessToken = data.tokens.accessToken;
+
+// 2. Create a task
+await fetch(`${API}/tasks`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${accessToken}`,
+  },
+  body: JSON.stringify({
+    title: "My first task",
+    description: "Created via fetch",
+    priority: "high",
+  }),
+});
+
+// 3. List all tasks
+const tasks = await fetch(`${API}/tasks`, {
+  headers: { Authorization: `Bearer ${accessToken}` },
+}).then((r) => r.json());
+
+console.log(tasks.data);
 ```
 
 ---

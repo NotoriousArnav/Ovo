@@ -12,6 +12,14 @@ The Ovo mobile app is built with **Expo SDK 54** and **React Native**, using **r
 | Task | `/(app)/task` | Yes | Dual-purpose create/edit task form (edit mode when `?id=` param is present) |
 | Profile | `/(app)/profile` | Yes | User info, notification settings (enable/disable + time picker), API keys, member since date, app version, sign-out button |
 
+### Screenshots
+
+| Dashboard | Update Task |
+|:---------:|:-----------:|
+| ![Dashboard](images/dashboard.png) | ![Update Task](images/update_task.png) |
+
+> **Platform note:** Ovo mobile is **Android-first**. All CI/CD pipelines, signing configurations, and Obtainium instructions target Android. iOS is theoretically possible via Expo's iOS support, but has not been tested. There are no iOS-specific build scripts or distribution workflows.
+
 ## Navigation Structure
 
 Ovo uses [expo-router v6](https://docs.expo.dev/router/) for file-based routing. Routes are organized into **route groups**:
@@ -210,6 +218,20 @@ The hook is wired in `app/(app)/_layout.tsx` so notifications initialize after a
 4. Schedules a daily notification at the user's configured time using `SchedulableTriggerInputTypes.DAILY`
 
 Notifications are **local** (scheduled via `expo-notifications`), not remote push. No Firebase or APNs infrastructure is needed.
+
+### AI Summary Card Behavior
+
+The home screen displays an AI daily summary card at the top of the dashboard. The card has several states:
+
+| State | Condition | What the user sees |
+|-------|-----------|-------------------|
+| **Loading** | Fetching summary from backend | Skeleton/spinner in the card area |
+| **Success** | Summary returned with focus tasks | Summary text, top 3 focus tasks with reasons, encouragement message |
+| **Error** | API returned a non-503 error | Card is hidden or shows a subtle error |
+| **Not configured** | Backend returned 503 (no `GROQ_API_KEY`) | Card is **hidden entirely** — the dashboard shows only the progress card and task list |
+| **Rate limited** | Backend returned 429 | Card shows a "try again later" message |
+
+The card only appears if the backend has AI features configured (`GROQ_API_KEY` set). If the key is missing, the `GET /api/ai/daily-summary` endpoint returns 503 and all frontends silently suppress the card — the rest of the app works normally.
 
 ### Event Horizon OAuth (Mobile)
 

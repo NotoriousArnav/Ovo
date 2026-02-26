@@ -4,6 +4,12 @@ The Ovo MCP server exposes your tasks to AI assistants via the [Model Context Pr
 
 It talks to the Ovo backend over HTTP using an API key for authentication — no direct database access.
 
+### What is MCP?
+
+The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is an open standard for connecting AI assistants to external tools and data sources. Instead of building custom plugins for each AI client, you build one MCP server and it works with any client that supports the protocol.
+
+The Ovo MCP server uses **stdio transport** — the AI client spawns the server as a subprocess and communicates via JSON-RPC messages over stdin/stdout. This is different from the REST API (which uses HTTP requests). You don't call the MCP server directly; your AI assistant does it for you behind the scenes.
+
 ## Prerequisites
 
 - An **Ovo account** with at least one API key
@@ -182,6 +188,8 @@ If you want hot-reload during development instead of running the compiled output
 
 ## Tools
 
+MCP **tools** are actions the AI assistant can invoke on your behalf — creating, updating, deleting tasks, etc. When you say "create a task called hello world", the assistant calls the `create_task` tool, which sends an HTTP request to the Ovo backend.
+
 The MCP server exposes 9 tools that AI assistants can call:
 
 | Tool | Description | Parameters |
@@ -211,7 +219,9 @@ Once connected, you can ask your AI assistant things like:
 
 ## Resources
 
-The server also exposes 5 MCP resources that clients can read directly:
+MCP **resources** are read-only data the AI assistant can browse without explicitly calling a tool. Think of tools as "verbs" (do something) and resources as "nouns" (look at something). Not all MCP clients support resource browsing — Claude Desktop does, but some others may not.
+
+The server exposes 5 MCP resources:
 
 | URI | Description | Format |
 |-----|-------------|--------|
@@ -242,3 +252,52 @@ Resources are read-only views of your data. Clients that support resource browsi
 
 **Server logs**
 - The MCP server logs to stderr (so it doesn't interfere with the stdio protocol). Your MCP client should surface these somewhere in its logs or developer console.
+
+## Build Pipeline
+
+The MCP server can be built as a **standalone binary** using Node.js [Single Executable Applications (SEA)](https://nodejs.org/api/single-executable-applications.html). This means end users don't need Node.js installed.
+
+### How the build works
+
+```
+TypeScript source (src/)
+    │
+    ▼  esbuild (pnpm build:bundle)
+Single JS bundle (dist/ovo-mcp-bundle.cjs)
+    │
+    ▼  node --experimental-sea-config sea-config.json
+SEA blob (dist/ovo-mcp.blob)
+    │
+    ▼  postject (inject blob into Node binary)
+Standalone binary (dist/ovo-mcp)
+    │
+    ▼  codesign (macOS only — ad-hoc re-sign)
+Final binary
+```
+
+### CI/CD
+
+GitHub Actions (`.github/workflows/build-mcp.yml`) runs this pipeline on every push to `main`, building **6 platform targets** in parallel:
+
+- `linux-x64`, `linux-arm64` — native builds
+- `darwin-arm64` (Apple Silicon), `darwin-x64` (Intel) — native builds with ad-hoc codesigning
+- `win-x64` — native build
+- `win-arm64` — cross-compiled on Linux by downloading a Node.js Windows ARM64 binary
+
+All 6 binaries are attached to the GitHub Release (tagged by commit short SHA). The release step uses `append_body: true` so it doesn't overwrite the APK workflow's release notes.
+
+### Building locally
+
+```bash
+# Bundle only (produces dist/index.js — requires Node to run)
+pnpm --filter @ovo/mcp build
+
+# Full SEA build (produces standalone binary)
+pnpm --filter @ovo/mcp build:bundle
+cd apps/mcp
+node --experimental-sea-config sea-config.json
+cp $(command -v node) dist/ovo-mcp
+npx postject dist/ovo-mcp NODE_SEA_BLOB dist/ovo-mcp.blob \
+  --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
+chmod +x dist/ovo-mcp
+```

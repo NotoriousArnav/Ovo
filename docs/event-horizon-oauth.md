@@ -55,9 +55,35 @@ Client
 
 Event Horizon requires PKCE (Proof Key for Code Exchange) with S256 challenge method. The backend generates the `code_verifier` and stores it inside the signed state JWT, so it survives the redirect round-trip without needing server-side session storage. This keeps the flow stateless and serverless-compatible.
 
+From `services/auth.ts`:
+
+```typescript
+// PKCE: generate code_verifier and code_challenge
+const codeVerifier = crypto.randomBytes(32).toString("base64url");
+const codeChallenge = crypto
+  .createHash("sha256")
+  .update(codeVerifier)
+  .digest("base64url");
+```
+
+The `code_challenge` is sent in the authorize request; the `code_verifier` is stored in the state JWT and used later during the token exchange.
+
 ### State JWT
 
 Instead of storing OAuth state in a database or in-memory session, the backend signs a JWT containing the redirect URI, nonce, and PKCE code_verifier. This is set as the `state` parameter in the OAuth authorize request. When Event Horizon redirects back, the backend verifies the JWT signature and expiry (5 minutes) to prevent CSRF and replay attacks.
+
+From `services/auth.ts`:
+
+```typescript
+const state = signStateToken({ redirectUri, nonce, codeVerifier });
+
+// signStateToken signs a JWT with 5-minute expiry:
+function signStateToken(payload: Record<string, unknown>): string {
+  return jwt.sign(payload, process.env.JWT_ACCESS_SECRET!, { expiresIn: "5m" });
+}
+```
+
+The state JWT reuses `JWT_ACCESS_SECRET` — no additional secret is needed.
 
 ## Architecture Decisions
 
@@ -132,3 +158,15 @@ The `ovo://` custom scheme is configured in `apps/mobile/app.json` under `"schem
 - **`EH_ALLOWED_REDIRECTS` allowlist**: Every client callback URL must be in this list, or the backend rejects the request. If you deploy the web app to a new domain, add it here.
 - **OAuth-only users have no password**: Users who sign up via Event Horizon have `passwordHash: null` in the database. They can't use the email/password login endpoint. The `authProvider` field on the user model tracks how they signed up (`"local"` or `"eventhorizon"`).
 - **Auto-linking**: If a user registers with email/password and later signs in with Event Horizon using the same email, their account is automatically linked — `authProvider` updates to `"eventhorizon"` and they're logged in. No duplicate accounts.
+
+## Failure & Fallback Behavior
+
+| Scenario | What happens | User impact |
+|----------|-------------|-------------|
+| Event Horizon is down | Token exchange fails → backend returns `502 Bad Gateway` | User sees an error message. Can still log in with email/password. |
+| User cancels/denies the OAuth prompt | EH redirects back with `?error=access_denied` | Backend returns `400` with the EH error message. User stays on the login page. |
+| EH env vars not set | `initiateEventHorizonLogin()` throws `500` | "Sign in with Event Horizon" button should be hidden or disabled. Local auth works normally. |
+| State JWT expired (> 5 min) | `verifyStateToken()` throws `400 Invalid or expired OAuth state` | User must restart the OAuth flow by clicking the button again. |
+| EH account has no email | Backend returns `400 Event Horizon account has no email address` | User needs to add an email to their EH account first. |
+
+**Key principle:** Event Horizon is optional. Local email/password authentication always works, regardless of EH configuration or availability. If EH is not configured (env vars missing), the OAuth endpoints will return errors but nothing else is affected.

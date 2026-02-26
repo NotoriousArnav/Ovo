@@ -1,5 +1,9 @@
 # Ovo
 
+[![CI](https://github.com/NotoriousArnav/Ovo/actions/workflows/ci.yml/badge.svg)](https://github.com/NotoriousArnav/Ovo/actions/workflows/ci.yml)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](./LICENSE)
+[![Node](https://img.shields.io/badge/Node-%3E%3D%2020-brightgreen.svg)](https://nodejs.org/)
+
 A self-hosted task manager. Web, Android, one API. Your data, your server.
 
 ## Why?
@@ -15,6 +19,10 @@ I was tired of spoon-feeding Google my data in an organized way, and I'm too laz
 - **[Event Horizon (Community SSO)](docs/event-horizon-oauth.md)** — sign in with your BroCode account via OAuth2, no third-party identity providers needed
 - **Material Design 3** — clean MD3 theming with automatic dark mode; on Android 12+, colors adapt to your wallpaper
 - **Open source** — GPL-3.0, inspect/fork/self-host freely
+
+| Dashboard | Update Task |
+|:---------:|:-----------:|
+| ![Dashboard](docs/images/dashboard.png) | ![Update Task](docs/images/update_task.png) |
 
 ## Quick Start
 
@@ -63,6 +71,18 @@ Ovo is built for the [BroCode Tech](https://brocode-tech.netlify.app/) community
 
 **Live API:** [Swagger UI](https://ovo-backend.vercel.app/api/docs) | [OpenAPI JSON](https://ovo-backend.vercel.app/api/docs.json)
 
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | Express.js, Prisma ORM, PostgreSQL (NeonDB), JWT + refresh token rotation |
+| Web | Vue 3, Pinia, Axios, Vite, custom MD3 CSS |
+| Mobile | Expo SDK 54, React Native Paper v5, Material You, Zustand |
+| MCP Server | Model Context Protocol (stdio), esbuild, SEA binaries |
+| Shared | TypeScript, Zod schemas (pnpm workspace) |
+| CI/CD | GitHub Actions, Turborepo, Vercel (backend), Netlify (web) |
+| AI | LangChain.js, Groq (Llama 3), per-user daily caching |
+
 ## Roadmap
 
 **Shipped:**
@@ -75,6 +95,15 @@ Ovo is built for the [BroCode Tech](https://brocode-tech.netlify.app/) community
 - **Calendar Integration** — sync tasks with Google Calendar, Apple Calendar, CalDAV
 - **Natural Language Task Creation** — "add buy groceries tomorrow high priority" via LangChain
 - **Smart Task Decomposition** — "break this task into subtasks" powered by AI
+
+## Contributing
+
+1. Fork the repo and create a feature branch (`git checkout -b feat/my-feature`)
+2. Make your changes — run `pnpm typecheck` before pushing
+3. If you touch `packages/shared/src/`, copy the changes to `apps/backend/src/shared/` (see [Shared Package docs](docs/shared-package.md))
+4. Open a Pull Request against `main`
+
+All contributions welcome — bug fixes, new features, docs improvements, or just fixing a typo.
 
 ## License
 

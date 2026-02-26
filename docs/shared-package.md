@@ -16,6 +16,40 @@ packages/shared/
 
 ### Types (`types.ts`)
 
+Core type definitions used across all apps. Here are a few key examples:
+
+```typescript
+// Task — the central data model
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  status: TaskStatus;      // "pending" | "in_progress" | "completed"
+  priority: TaskPriority;  // "low" | "medium" | "high"
+  dueDate: string | null;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// AI Daily Summary — returned by the LLM
+export interface DailySummary {
+  summary: string;
+  focusTasks: DailySummaryFocusTask[];  // { id, title, reason }
+  encouragement: string;
+  generatedAt: string;
+}
+
+// Standard API response wrapper
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+```
+
+Full type list:
+
 | Type | Description |
 |------|-------------|
 | `User` | User object (`id`, `name`, `email`, `authProvider`, `createdAt`, `updatedAt`) |
@@ -36,6 +70,30 @@ packages/shared/
 | `DailySummary` | `{ summary, focusTasks, encouragement, generatedAt }` — full AI daily summary |
 
 ### Validation Schemas (`validation.ts`)
+
+Zod schemas that validate input on both client and server. Each schema also exports an inferred TypeScript type. Here are two key examples:
+
+```typescript
+// Task creation — validates input, sets defaults
+export const createTaskSchema = z.object({
+  title: z.string().min(1).max(200).trim(),
+  description: z.string().max(2000).trim().default(""),
+  status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
+  priority: z.enum(["low", "medium", "high"]).default("medium"),
+  dueDate: z.string().datetime().nullable().optional(),
+});
+export type CreateTaskInput = z.infer<typeof createTaskSchema>;
+
+// AI daily summary — used as LLM structured output schema
+export const dailySummaryResponseSchema = z.object({
+  summary: z.string().describe("A short, ADHD-friendly overview of what to focus on today"),
+  focusTasks: z.array(dailySummaryFocusTaskSchema).min(1).max(5)
+    .describe("Top 3-5 tasks to focus on, ordered by urgency"),
+  encouragement: z.string().describe("A brief, genuine encouragement — one sentence, no fluff"),
+});
+```
+
+Full schema list:
 
 | Schema | Used By | Purpose |
 |--------|---------|---------|
@@ -155,3 +213,26 @@ If you update a type or schema in `packages/shared/`, you must also update the c
 **Future improvements:**
 - A pre-deploy script could automate syncing `packages/shared/src/` to `apps/backend/src/shared/`.
 - Switching to a bundler-based build step for the backend (e.g., `tsup` or `esbuild`) could resolve the workspace import at build time, eliminating the need for inlining.
+
+### Keeping the Copies in Sync
+
+Currently, syncing is a **manual process**:
+
+1. Make your changes in `packages/shared/src/` (the source of truth)
+2. Copy the changed files to `apps/backend/src/shared/`
+3. Run `pnpm typecheck` to verify both copies are consistent
+
+A quick way to sync:
+
+```bash
+cp packages/shared/src/*.ts apps/backend/src/shared/
+pnpm typecheck
+```
+
+**Potential future automation:**
+
+- Add a `pnpm sync:shared` script to the root `package.json` that copies the files and runs typecheck
+- Add a CI check that diffs the two directories and fails if they're out of sync:
+  ```bash
+  diff -r packages/shared/src/ apps/backend/src/shared/ || (echo "Shared package out of sync!" && exit 1)
+  ```

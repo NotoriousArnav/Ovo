@@ -173,7 +173,37 @@ Runs on every push to `main` and on manual dispatch (`workflow_dispatch`).
 10. Read version from `app.json`
 11. Create a GitHub Release tagged `v{version}-{run_number}` with the APK attached
 
-The release step uses [`softprops/action-gh-release@v2`](https://github.com/softprops/action-gh-release).
+The release step uses [`softprops/action-gh-release@v2`](https://github.com/softprops/action-gh-release) with `append_body: true` so the APK and MCP workflows don't overwrite each other's release notes.
+
+### MCP Binary Build Pipeline (`.github/workflows/build-mcp.yml`)
+
+Runs on every push to `main` and on manual dispatch. Builds standalone [Single Executable Application (SEA)](https://nodejs.org/api/single-executable-applications.html) binaries — no Node.js installation required on the target machine.
+
+**Permissions**: `contents: write` (required for creating/appending to GitHub Releases).
+
+**Build matrix (6 targets):**
+
+| Label | Runner | Cross-compiled? |
+|-------|--------|-----------------|
+| `linux-x64` | `ubuntu-latest` | No |
+| `linux-arm64` | `ubuntu-24.04-arm` | No |
+| `darwin-arm64` | `macos-latest` | No |
+| `darwin-x64` | `macos-15-intel` | No |
+| `win-x64` | `windows-latest` | No |
+| `win-arm64` | `ubuntu-latest` | Yes — downloads Node v22 win-arm64 binary |
+
+**Build process (per target):**
+
+1. Checkout, setup pnpm/Node 22, install dependencies
+2. **Bundle** — `pnpm --filter @ovo/mcp build:bundle` (esbuild bundles the entire app into a single JS file)
+3. **Generate SEA blob** — `node --experimental-sea-config sea-config.json` produces a binary blob from the bundle
+4. **Inject into Node binary** — copies the platform's `node` binary, strips existing code signatures (macOS/Windows), then uses `postject` to inject the SEA blob with the `NODE_SEA_FUSE` sentinel
+5. **Re-sign** — on macOS, re-signs with ad-hoc signature (`codesign --sign -`)
+6. **Rename** — appends platform label and commit short SHA (e.g., `ovo-mcp-linux-x64-abc1234`)
+7. **Upload artifact** — 30-day retention
+8. **Release job** — downloads all 6 binaries and attaches them to the GitHub Release (same commit-SHA tag used by the APK workflow), using `append_body: true`
+
+For `win-arm64` cross-compilation, the workflow runs on `ubuntu-latest`, downloads a Node v22 Windows ARM64 binary from `nodejs.org`, and injects the blob into that binary instead of the runner's own `node`.
 
 ---
 
@@ -267,3 +297,73 @@ curl https://ovo-backend.vercel.app/api/health
 # 3. Check the latest GitHub Release
 gh release list --repo NotoriousArnav/Ovo --limit 1
 ```
+
+---
+
+## Rollback
+
+### Backend (Vercel)
+
+Vercel keeps every deployment. To rollback:
+
+1. Open the Vercel dashboard → Deployments tab
+2. Find the last known-good deployment
+3. Click the three-dot menu → **Promote to Production**
+
+### Web App (Netlify)
+
+Netlify also keeps deploy history:
+
+1. Open the Netlify dashboard → Deploys tab
+2. Click the deploy you want to restore
+3. Click **Publish deploy**
+
+### Mobile / MCP Binaries (GitHub Releases)
+
+Each push to `main` creates a new release tagged by commit SHA. To rollback:
+
+1. Go to [GitHub Releases](https://github.com/NotoriousArnav/Ovo/releases)
+2. Find the release corresponding to the last known-good commit
+3. Download the APK or MCP binary from that release
+4. Distribute manually or point Obtainium users to the specific release
+
+---
+
+## Monitoring & Logging
+
+### Backend
+
+- **Vercel function logs**: Vercel Dashboard → your project → Logs tab. Shows `console.log`/`console.error` output from the serverless function. Logs are ephemeral (not persisted long-term).
+- **Request logging**: In development, `morgan` logs every request in `dev` format to stdout. In production (`NODE_ENV=production`), morgan is not active.
+- **Prisma query logging**: In development, Prisma logs all SQL queries to stdout. In production, only errors are logged.
+
+### Web App
+
+- **Netlify build logs**: Netlify Dashboard → Deploys → click a deploy to see the full build output.
+- **Runtime**: The web app is a static SPA — no server-side logs. Use browser DevTools (Console, Network) for debugging.
+
+### GitHub Actions
+
+- All workflow runs are visible at **Actions** tab in the GitHub repository. Each job shows step-by-step output with timestamps.
+
+---
+
+## Production Database Notes
+
+Ovo currently uses `prisma db push` for schema management. This works well for small teams and solo projects:
+
+- **`db push`** applies the Prisma schema directly to the database — no migration files, no migration history table.
+- It's fast and frictionless for development: change the schema, run `db:push`, done.
+- **Downside**: There's no record of what changed or when. Schema changes can't be reviewed in PRs.
+
+**For larger teams or production-critical deployments**, consider switching to `prisma migrate`:
+
+```bash
+# Create a migration (generates SQL in prisma/migrations/)
+pnpm --filter @ovo/backend db:migrate
+
+# Apply pending migrations in production
+pnpm --filter @ovo/backend prisma migrate deploy
+```
+
+Migration files are version-controlled and can be reviewed in pull requests. The `db:migrate` script is already configured in the backend's `package.json`.

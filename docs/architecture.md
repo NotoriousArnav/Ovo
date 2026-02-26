@@ -49,7 +49,7 @@ Ovo/
 │   │   │   ├── pages/           # Route-level page components
 │   │   │   ├── components/      # Reusable UI components
 │   │   │   ├── stores/          # Pinia state stores
-│   │   │   ├── services/        # API service layer (fetch)
+│   │   │   ├── services/        # API service layer (Axios)
 │   │   │   ├── layouts/         # Layout wrappers
 │   │   │   ├── router/          # Vue Router config
 │   │   │   ├── App.vue          # Root component
@@ -234,6 +234,7 @@ Ovo uses JWT access tokens with refresh token rotation:
 - **Helmet middleware** — sets security headers (Content-Security-Policy, X-Frame-Options, etc.)
 - **Request body limit** — 10KB max to prevent abuse
 - **CORS configurable** — defaults to `*` but can be restricted via `CORS_ORIGIN` env var
+- **API key authentication** — long-lived tokens (`ovo_` prefix) for programmatic access; keys are bcrypt-hashed in the database and never stored in plaintext
 
 ## State Management (Mobile)
 
@@ -320,6 +321,98 @@ Manages authentication state, JWT tokens (stored in `localStorage`), and user se
 ### Tasks Store (`stores/tasks.ts`)
 
 Manages tasks, filtering, pagination, and statistics — same shape as the mobile TaskStore.
+
+## Web App Architecture
+
+The Vue 3 SPA follows a layered architecture similar to the mobile app:
+
+```
+Pages (route-level components)
+  └── Components (reusable UI)
+        └── Services (API calls via Axios)
+              └── Stores (Pinia state management)
+```
+
+### Router & Route Guards
+
+Vue Router is configured in `src/router/index.ts` with `meta` flags for auth control:
+
+- **`meta.auth: true`** — requires authentication. If the user is not logged in, redirects to `/login`.
+- **`meta.guest: true`** — guest-only routes (login, register). If the user is already logged in, redirects to `/dashboard`.
+
+**Public routes** (no auth required):
+
+| Path | Page |
+|------|------|
+| `/` | Landing page |
+| `/docs` | Documentation |
+| `/login` | Login form |
+| `/register` | Registration form |
+| `/auth/eventhorizon/callback` | OAuth callback handler |
+
+**Protected routes** (require auth):
+
+| Path | Page |
+|------|------|
+| `/dashboard` | Main dashboard with task list and stats |
+| `/dashboard/tasks/new` | Create task form |
+| `/dashboard/tasks/:id/edit` | Edit task form |
+| `/dashboard/profile` | User profile and settings |
+
+The router uses a `beforeEach` navigation guard that checks the auth store's `isAuthenticated` state against each route's `meta` flags.
+
+### Token Refresh (Axios Interceptors)
+
+The web app has the **same token refresh mechanism** as the mobile app — implemented in `src/services/api.ts` as an Axios response interceptor:
+
+1. All requests automatically attach `Authorization: Bearer <accessToken>` via a request interceptor
+2. On a `401` response, the interceptor pauses the failing request
+3. Calls `POST /api/auth/refresh` with the stored refresh token
+4. If refresh succeeds, replays the original request with the new access token
+5. A **request queue** prevents concurrent refresh attempts — if multiple requests fail simultaneously, only one refresh call is made and all queued requests replay after
+
+Tokens are stored in `localStorage` (not `SecureStore` like mobile, since browsers don't have platform-level encrypted storage).
+
+## MCP Server Architecture
+
+The MCP (Model Context Protocol) server is a **standalone process** that bridges AI assistants (Claude, Cursor, etc.) with the Ovo backend.
+
+```
+AI Assistant (Claude, Cursor, etc.)
+    │
+    │  stdio (JSON-RPC over stdin/stdout)
+    │
+    ▼
+┌─────────────────────────────────┐
+│  ovo-mcp                         │
+│  @modelcontextprotocol/sdk       │
+│  StdioServerTransport            │
+│                                  │
+│  Tools → HTTP requests to        │
+│          Ovo backend REST API    │
+│  Resources → HTTP GET requests   │
+└──────────────┬──────────────────┘
+               │
+               │  HTTP (fetch)
+               │
+               ▼
+┌─────────────────────────────────┐
+│  Ovo Backend REST API            │
+│  (localhost or production URL)   │
+└─────────────────────────────────┘
+```
+
+### Key Design Decisions
+
+1. **HTTP API mode, not direct DB** — The MCP server talks to the backend over HTTP, using the same REST API as the web and mobile clients. This means it goes through the same auth, validation, and rate limiting.
+
+2. **API key authentication** — Uses a long-lived API key (`OVO_ACCESS_TOKEN`) instead of JWT access/refresh tokens, since there's no interactive login flow for a CLI tool.
+
+3. **Intentionally decoupled from `@ovo/shared`** — The MCP server mirrors the necessary TypeScript types locally in `src/api.ts` rather than importing from the shared package. This avoids workspace dependency complexity in the SEA (Single Executable Application) build.
+
+4. **Raw `fetch()` for API calls** — No Axios dependency. The MCP server uses Node's built-in `fetch()` to keep the bundle small.
+
+5. **stdio transport** — Uses `StdioServerTransport` from the MCP SDK, which communicates via JSON-RPC messages over stdin/stdout. This is the standard transport for MCP servers that run as local processes.
 
 ## Event Horizon OAuth
 

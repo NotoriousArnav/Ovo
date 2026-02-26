@@ -84,6 +84,17 @@ cp apps/mobile/.env.example apps/mobile/.env
 |----------|----------|-------------|---------|
 | `EXPO_PUBLIC_API_URL` | Yes | Backend API base URL | `http://localhost:3001` (dev) or `https://ovo-backend.vercel.app` (prod) |
 
+### MCP Server (`apps/mcp/.env`)
+
+The MCP server uses API key authentication to talk to the backend. Create an API key via the web app's Profile page or the `POST /api/keys` endpoint first.
+
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `OVO_API_URL` | Yes | Backend API base URL | `http://localhost:3001/api` (dev) or `https://ovo-backend.vercel.app/api` (prod) |
+| `OVO_ACCESS_TOKEN` | Yes | API key for authenticating with the backend | `ovo_abc123...` |
+
+See [MCP Server](./mcp-server.md) for usage instructions.
+
 ## 3. Database Setup
 
 Ovo uses [Prisma ORM](https://www.prisma.io/) with NeonDB. After configuring `DATABASE_URL`:
@@ -123,6 +134,14 @@ pnpm dev
 ```
 
 This runs `turbo dev`, which starts the backend, web, and mobile dev servers in parallel.
+
+**Default ports:**
+
+| App | Port | URL |
+|-----|------|-----|
+| Backend (Express) | 3001 | `http://localhost:3001` |
+| Web (Vite) | 5173 | `http://localhost:5173` |
+| Mobile (Expo Metro) | 8081 | Expo Go / dev client connects automatically |
 
 ### Individually
 
@@ -194,6 +213,48 @@ Expected response:
 | `web` | Start web version |
 | `typecheck` | Type-check without emitting |
 | `prebuild` | Generate native projects (`expo prebuild --clean`) |
+
+## Troubleshooting
+
+### `pnpm install` fails
+
+- Make sure you're on Node >= 20 and pnpm >= 9. Run `node -v && pnpm -v` to check.
+- Delete `node_modules` in the root and all workspaces, then retry: `pnpm clean && pnpm install`.
+
+### `DATABASE_URL` issues
+
+- NeonDB connection strings must end with `?sslmode=require`. Prisma won't connect without SSL in production.
+- Make sure you're using the **pooled connection string** (the one with `-pooler` in the hostname) if NeonDB provides one.
+
+### `prisma db:push` fails
+
+- Double-check that `DATABASE_URL` is set correctly in `apps/backend/.env`.
+- If you get "schema drift" errors, Prisma is detecting a mismatch between your schema and the existing database. For development, you can use `prisma db push --force-reset` (this wipes data).
+
+### Port conflicts
+
+If port 3001, 5173, or 8081 is already in use, either kill the existing process or set a custom port:
+
+- Backend: set `PORT` in `apps/backend/.env`
+- Web: run `pnpm dev:web -- --port 5174`
+- Mobile: Expo picks another port automatically if 8081 is taken
+
+### Mobile can't reach `localhost`
+
+Your phone can't resolve `localhost` — it refers to the phone itself, not your dev machine. Use your computer's LAN IP instead:
+
+```bash
+# Find your LAN IP
+ip addr show | grep "inet " | grep -v 127.0.0.1
+# or on macOS:
+ipconfig getifaddr en0
+```
+
+Set `EXPO_PUBLIC_API_URL=http://192.168.x.x:3001` in `apps/mobile/.env` (use your actual IP).
+
+### AI features return 503
+
+This is expected if `GROQ_API_KEY` is not set. The rest of the app works normally without it — AI daily summaries simply won't be available.
 
 ## Next Steps
 
